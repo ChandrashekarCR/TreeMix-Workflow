@@ -1,0 +1,25 @@
+# Data files
+raw_data/
+
+# Ignore bin files
+bin/
+
+# Ignore some of the markdown files
+BASELINE_PLOTTING_GUIDE.md
+PLOTTING_IMPROVEMENTS_GUIDE.md
+REPRODUCIBILITY_ASSESSMENT.md
+WORKFLOW_DOCUMENTATION.md
+QUICK_START.md
+
+# Ignore results
+experiments/
+
+# Ignore all files that are hidden
+.venv
+.ruff_cache
+.vscode
+.DS_Store
+
+# Ignore these miscellaneous files
+create_baseline_plots.sh
+
