@@ -149,7 +149,8 @@ plot_tree_internal = function(d, e, o = NA, cex = 1, disp = 0.005, plus = 0.005,
        labels = format(seq(0, 0.15, by = 0.01), nsmall = 2), 
        cex.axis = 0.7)
   
-	mw = max(e[e[,5]=="MIG",4])
+mig_weights = e[e[,5]=="MIG",4]
+	mw = if(length(mig_weights) > 0) max(mig_weights) else 0
 	mcols = rev(heat.colors(150))
 	
 	for(i in 1:nrow(e)){
@@ -180,7 +181,7 @@ plot_tree_internal = function(d, e, o = NA, cex = 1, disp = 0.005, plus = 0.005,
 	tmp = d[d[,5] == "TIP",]
 	print(tmp$x)
 	print(disp)
-	if ( !is.na(o)){
+	if (!(length(o) == 1 && is.na(o))){
 		for(i in 1:nrow(tmp)){
 			tcol = o[o[,1] == tmp[i,2],2]
 			if(plotnames){
@@ -193,7 +194,7 @@ plot_tree_internal = function(d, e, o = NA, cex = 1, disp = 0.005, plus = 0.005,
 	else{
 		if (plotnames){
 		  ########### changes by me ########### 
-		  CONTINENT_MAP <- fromJSON("/Users/marleneuni/Projects/Treemix-Project/raw_data/hgdp_popto_simplified.json")
+		  CONTINENT_MAP <- fromJSON("/home/inf-21-2024/projects/Treemix/raw_data/region_mapping.json")
 		  # Get unique superpopulations
 		  superpops <- unique(unlist(CONTINENT_MAP))
 
@@ -204,14 +205,13 @@ plot_tree_internal = function(d, e, o = NA, cex = 1, disp = 0.005, plus = 0.005,
 		  # Create named color mapping
 		  #continent_colors <- setNames(palette, superpops)
 		  continent_colors <- c(
-		    "Africa" = "#e6550d",        # kräftiges orange
+		    "Subsaharan Africa" = "#e6550d", 
+		    "North Africa" = "orange", 
 		    "Europe" = "#3182bd",        # dunkleres blau
-		    "East Asia" = "#b8860b",     # dunkelgold statt gelb
 		    "Oceania" = "#e377c2",       # pink
 		    "America" = "#7f7f7f",       # grau
-		    "South Asia" = "#117733",    # dunkles grün
-		    "Middle East" = "#9467bd",   # violett
-		    "Central Asia" = "#20b2aa"   # türkis
+		    "Asia" = "#117733",    # dunkles grün
+		    "Middle East" = "#9467bd"   # violett
 		  )
 		  
 		  if (mark_changes){
@@ -235,6 +235,10 @@ plot_tree_internal = function(d, e, o = NA, cex = 1, disp = 0.005, plus = 0.005,
 		    text_color = ifelse(continent %in% names(continent_colors), continent_colors[[continent]], "black")
 		    
 		    font_weight <- ifelse(node_name %in% changed_pops, 4, font)
+		    
+	
+		    
+		    
 
 		    # Get label size
 		    label_width <- strwidth(node_name, cex = cex, font = 4)
@@ -264,6 +268,32 @@ plot_tree_internal = function(d, e, o = NA, cex = 1, disp = 0.005, plus = 0.005,
 		      )
 		    }
 		    
+		    # For experiment_6 to highlight the reduced populations
+		    # highlighted_nodes <- c("Maya", "Surui", "Hazara", "Makrani", "Hezhen", "Tu",
+		    #                        "Balochi", "Kalash", "Naxi", "Basque", "Russian",
+		    #                        "Bedouin", "Mozabite", "Papuan", "BantuKenya",
+		    #                        "BantuSouthAfrica")
+		    # 
+		    # if (node_name %in% highlighted_nodes) {
+		    # 
+		    #   # Coordinates for underline
+		    #   x_start <- tmp[i, ]$x + disp
+		    #   x_end <- x_start + label_width
+		    #   y_underline <- tmp[i, ]$y - label_height * 0.55  # Slightly below text baseline
+		    # 
+		    #   # Draw underline
+		    #   segments(
+		    #     x0 = x_start,
+		    #     y0 = y_underline,
+		    #     x1 = x_end,
+		    #     y1 = y_underline,
+		    #     col = "green",      # or another highlight color
+		    #     lwd = 1.5         # line width; tweak as needed
+		    #   )
+		    # }
+
+		    
+		    
 		    
 		    # Draw the node name in the corresponding color
 		    text(tmp[i,]$x + disp, tmp[i,]$y, labels = node_name, adj = 0, 
@@ -271,7 +301,7 @@ plot_tree_internal = function(d, e, o = NA, cex = 1, disp = 0.005, plus = 0.005,
 		  }
 		} 
 	  legend("topright", legend = names(continent_colors), col = unlist(continent_colors), 
-		         pch = 15, cex = 0.6, title = "Superpopulation", bty = "n")
+		         pch = 15, cex = 0.8, title = "Continental regions", bty = "n")
 	
 		
 		
@@ -626,5 +656,4 @@ plot_resid_internal = function(d, o = NA, max = 0.009, min = -0.009, cex =0.5, w
 	return(d)
 	#image(as.matrix(d), col = cols)
 }
-
 
