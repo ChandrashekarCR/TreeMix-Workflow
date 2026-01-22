@@ -19,8 +19,8 @@ get_script_dir <- function() {
 }
 
 script_dir <- get_script_dir()
-#source(file.path(script_dir, "plotting_funcs_marlene.R"))
-source("/home/inf-21-2024/miniconda3/envs/treemix_env/bin/plotting_funcs.R")
+source(file.path(script_dir, "plotting_funcs.R"))
+#source("/home/inf-21-2024/miniconda3/envs/treemix_env/bin/plotting_funcs.R")
 
 #' Get continental region colors
 #' @return Named list of colors for each region
@@ -163,6 +163,10 @@ plot_treemix_with_legend <- function(stem,
   }
   
   # Plot the tree
+  # Flip nodes to position San outgroup at the top of the tree:
+  # 76 = ROOT node (swap African branch to top)
+  # 2372 = African cluster node (swap San/Pygmy branch to top)
+  # 1504 = Pygmy cluster node (swap San/MbutiPygmy to top)
   result <- plot_tree(
     stem = stem,
     o = color_file,
@@ -171,7 +175,7 @@ plot_treemix_with_legend <- function(stem,
     plus = 0.01,
     arrow = 0.05,
     scale = TRUE,
-    flip = c(105, 92),
+    #flip = c(76, 2372, 1504),
     ybar = 0.1,
     mbar = TRUE,
     plotmig = plot_migrations,
