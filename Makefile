@@ -18,6 +18,15 @@ SHELL := bash
 hello: ## Check if the make file is working
 	@echo "Makefile is working"
 
+help: ## Help file for the Makefile
+	@echo "The Makefile can handle the following rules -:"
+	@echo "	[hello]			-	Hello Makefile."
+	@echo "	[conda_env]		-	Install all conda pacakges required."
+	@echo "	[clean]			-	Remove files which are not necessary."
+	@echo "	[lint]			-	Check for code formats."
+	@echo "	[plink]			-	Download the correct PLINK version for the experiments."
+	@echo "	[check_scripts]		-	Check for code formats in bash script."
+
 conda_env: environment.yml ## Install all the packages and dependencies
 	@if conda env list | grep -q "^$(CONDA_ENV_NAME)"; then \
 		echo "Environment '$(CONDA_ENV_NAME)' already exists. Syncing packages..."; \

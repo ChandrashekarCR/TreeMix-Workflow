@@ -54,12 +54,11 @@ convert_plink_to_treemix() {
     echo "Process finished and saved in $OUT_DIR"
 }
 
-
 # ==== LOCAL FUNCTIONS ====
 # Creates a results directory
 mkdir -p "$RESULTS_DIR"
 
-# Standard Quality Control: Baseline Dataset
+# Experiment 1 - Baseline Dataset
 # ---------------------------------------------------
 # This script performs standard quality control (QC) on the genetic dataset.
 # Only default PLINK filters are applied (--geno 0.1 & --maf 0.01).
@@ -69,7 +68,7 @@ mkdir -p "$RESULTS_DIR"
 # 2. Retain all variants and individuals without additional filtering criteria.
 # 3. Convert the processed dataset to TreeMix format.
 
-baseline() {
+test_1() {
 
     echo "===== Running Standard Quality Control ===== "
     # Creates results directory
@@ -82,6 +81,8 @@ baseline() {
     convert_plink_to_treemix "$PREFIX" "$OUT_DIR" "$POP_LIST"
 }
 
+# Experiment 2 -Treemix Parameters
+# The experiment 2 is all about the parameters of treemix and can be found on the treemix_script.sh
 
 # Experiment 3 - PLINK Parameters
 # Experiment 3a: Genotype Missingness
@@ -106,18 +107,19 @@ test_3a() {
     GENO_THRESHOLDS=("0.05" "0.01" "0.00")
 
     for GENO in "${GENO_THRESHOLDS[@]}"; do
+        (
           PREFIX="$OUT_DIR/2_geno_missing_${GENO//./}"  # Removes the dot for cleaner filenames
 
           echo "Running PLINK filtering with genotype missingness threshold: $GENO"
           "$PLINK" --bfile "$RAW_DATA" --geno "$GENO" --maf --make-bed --out "$PREFIX"
 
           convert_plink_to_treemix "$PREFIX" "$OUT_DIR" "$POP_LIST"
-
-
+        ) &
     done
+
+    wait # Wait for all the background processes to finish
     echo "Process finished and saved in $OUT_DIR"
 }
-
 
 # Experiment 3b: Minor Allele Frequency (MAF)
 # ---------------------------------------------------
@@ -146,7 +148,7 @@ test_3b() {
 }
 
 
-# Experiment 4: Addition of Archaic Homonins Genomes
+# Experiment 4: Addition of Archaic Hominin Genomes
 # ---------------------------------------------------
 # This script integrates two hominin individuals (Denisovan and Vindija Neanderthal)
 # from the Affymetrix Human Origins dataset into the original dataset. Each hominin
@@ -162,7 +164,7 @@ test_3b() {
 test_4() {
 
     # Creates results directory
-    echo "===== Running Experiment 4: Addition of Archaic Homonin Genomes ===== "
+    echo "===== Running Experiment 4: Addition of Archaic Hominin Genomes ===== "
     OUT_DIR="$RESULTS_DIR/experiment_4/plink_results"
     mkdir -p "$OUT_DIR"
 
@@ -186,17 +188,17 @@ test_4() {
     }
 
     # Run for both Denisovans and Vindija
-    process_hominin "Deni"
-    process_hominin "Vindija"
-    process_hominin "Both"
+    process_hominin "Deni" &
+    process_hominin "Vindija" &
+    process_hominin "Both" &
 
+    wait # Wait for all the processes to finish that are still running
     echo "Experiment 4 completed. Results in: $OUT_DIR"
 }
 
 
-
 # Experiment 5: Unbalanced or Small Samples
-# Experiemtn 5a: Uneven Sampling
+# Experiment 5a: Uneven Sampling
 # ---------------------------------------------------
 # This script reduces the sample size of a subset of populations, introducing an uneven
 # sample distribution in the dataset.
@@ -219,6 +221,7 @@ test_5a() {
 
     # Loop through each percentage
     for MAX in "${MAX_PER_POP[@]}"; do
+        (
         echo "Dropping $MAX of populations..."
         CUR_POP_LIST="${OUT_DIR}/reduced_${MAX}.tsv"
 
@@ -245,13 +248,15 @@ test_5a() {
 
         # Convert to TreeMix format
         convert_plink_to_treemix "$PREFIX_OUT" "$OUT_DIR" "$CUR_POP_LIST"
+        ) &
     done
 
+    wait # Wait for all background processes to finish 
     echo "Experiment 5a completed. Results in: $OUT_DIR"
 }
 
 
-# Experiment 5: Unbalanced or Samll Samples
+# Experiment 5: Unbalanced or Small Samples
 # Experiment 5b: Even Sampling
 # ---------------------------------------------------
 # This script reduces the sample size of all populations to the same predefined number defined in $SAMPLESIZES.
@@ -273,6 +278,7 @@ test_5b() {
     SAMPLESIZES=(3 4 5 6)
 
     for SAMPLESIZE in "${SAMPLESIZES[@]}";do
+        (
         # Naming
         CURR_POP_LIST="${OUT_DIR}/even_${SAMPLESIZE}ind.tsv"
         RANDOMSTATE=$((45 + SAMPLESIZE))
@@ -288,9 +294,11 @@ test_5b() {
         $PLINK --bfile "$RAW_DATA" --keep "$CURR_POP_LIST" --geno --maf --make-bed --out "$PREFIX"
 
         convert_plink_to_treemix "$PREFIX" "$OUT_DIR" "$CURR_POP_LIST"
+        ) &
 
-        done
-
+    done
+    
+    wait # Wait for all the processes to finish running in the background
     echo "Experiment 5b completed. Results in: $OUT_DIR"
 }
 
@@ -317,6 +325,7 @@ test_6a() {
 
     # Loop through each percentage
     for NUM in "${NUM_POPS[@]}"; do
+        (
         PREFIX="$OUT_DIR/4_drop_pops_${NUM}"
         CUR_POP_LIST="${OUT_DIR}/remove_pops_${NUM}.tsv"
 
@@ -337,8 +346,9 @@ test_6a() {
         echo "Dataset $PREFIX created."
 
         convert_plink_to_treemix "$PREFIX" "$OUT_DIR" "$POP_LIST"
-
+        ) &
     done
+    wait # Wait for all the process to finish in th background
     echo "Experiment 6a completed. Results in: $OUT_DIR"
 }
 
@@ -364,6 +374,7 @@ test_6b() {
     continents=("Europe" "North Africa" "Middle East" "Asia" "America" "Oceania")
     # Loop through each continent
     for continent in "${continents[@]}"; do
+        (
         echo "Processing dataset without $continent..."
         safe_continent=$(echo "$continent" | tr ' ' '_')
 
@@ -379,8 +390,10 @@ test_6b() {
         echo "Dataset $PREFIX created."
 
         convert_plink_to_treemix "$PREFIX" "$OUT_DIR" "$POP_LIST"
-    done
+        ) &
 
+    done
+    wait # Wait for all background processes to finish
     echo "All datasets processed. Results in: $OUT_DIR"
 }
 
@@ -513,7 +526,7 @@ test_7ba() {
 
 
 test_7bb() {
-    echo "===== Running Experiment 7bb: Artificial hybrid populations with two-mixtures ===== "
+    echo "===== Running Experiment 7bb: Artificial hybrid populations with five-mixtures ===== "
     OUT_DIR="$RESULTS_DIR/experiment_7bb/plink_results"
     mkdir -p "$OUT_DIR"
 
@@ -601,9 +614,9 @@ test_7bb() {
 # 5. Run TreeMix input converter
 
 
-test_12() {
-    echo "===== Running Experiment 12: Artificial hybrid populations with five-mixtures same shuffeled ===== "
-    OUT_DIR="$RESULTS_DIR/experiment_12/plink_results"
+test_8() {
+    echo "===== Running Experiment 8: Artificial hybrid populations with five-mixtures same shuffled ===== "
+    OUT_DIR="$RESULTS_DIR/experiment_8/plink_results"
     mkdir -p "$OUT_DIR"
 
 
@@ -663,70 +676,67 @@ test_12() {
     $PLINK --file "$HYBRID_DIR/all_hybrids" --make-bed --out "$HYBRID_DIR/all_hybrids"
     ##
     ### Step 4: Merge all hybrids with full dataset
-    $PLINK --bfile "$OUT_DIR/all" --bmerge "$HYBRID_DIR/all_hybrids" --make-bed --out "$OUT_DIR/12_artificial_5_merged_all"
+    $PLINK --bfile "$OUT_DIR/all" --bmerge "$HYBRID_DIR/all_hybrids" --make-bed --out "$OUT_DIR/8_artificial_5_merged_all"
     ##
     ### Step 5 (optional): Run TreeMix input converter
-    convert_plink_to_treemix "$OUT_DIR/12_artificial_5_merged_all" "$OUT_DIR" "$LIST_DIR/population_list_with_hybrids.tsv"
+    convert_plink_to_treemix "$OUT_DIR/8_artificial_5_merged_all" "$OUT_DIR" "$LIST_DIR/population_list_with_hybrids.tsv"
 
 
-    echo "Experiment 12 completed. Results in: $OUT_DIR"
+    echo "Experiment 8 completed. Results in: $OUT_DIR"
 }
-
 
 
 # ==== TEST SELECTION ====
 
 # Run all tests
 run_all() {
-    baseline
-    test_2
-    test_3
+    test_1
+    test_3a
+    test_3b
     test_4
-    test_5
-    test_6
-    test_7
+    test_5a
+    test_5b
+    test_6a
+    test_6b
+    test_7a
+    test_7ba
+    test_7bb
     test_8
-    test_9
-    test_10
-    test_11
-    test_12
-
-
 }
 
 # Run interactive mode
 interactive_mode() {
     echo "Select a test to run:"
     echo ""
-    echo "1) Standard QC"
-    echo "2) Genotype Missingness"
-    echo "3) Minor Allele Frequency"
-    echo "4) Drop Populations Specific Populations"
-    echo "5) Hominins Outgroup"
-    echo "6) Uneven sample number"
-    echo "7) Even the sample number"
-    echo "8) Remove continental populations"
-    echo "9) Drop specific historical admixed populations"
-    echo "10) Artificial hybrid populations - two"
-    echo "11) Artificial hybrid populations - five"
-    echo "12) Artificial hybrid populations - five shuffeld"
-    echo "13) Run all tests"
-    echo "14) Exit"
+    echo "1)  Baseline"
+    echo "3a) Genotype Missingness"
+    echo "3b) Minor Allele Frequency"
+    echo "4)  Hominins Outgroup"
+    echo "5a) Uneven sample number"
+    echo "5b) Even sample number"
+    echo "6a) Drop specific populations"
+    echo "6b) Remove continental populations"
+    echo "7a) Drop specific historical admixed populations"
+    echo "7ba) Artificial hybrid populations - two"
+    echo "7bb) Artificial hybrid populations - five"
+    echo "8) Artificial hybrid populations - five shuffled"
+    echo "9) Run all tests"
+    echo "10) Exit"
 
     read -r -p "Enter your choice: " choice
     case $choice in
-        1) baseline ;;
-        2) test_2 ;;
-        3) test_3 ;;
+        1) test_1 ;;
+        2) test_3a ;;
+        3) test_3b ;;
         4) test_4 ;;
-        5) test_5 ;;
-        6) test_6 ;;
-        7) test_7 ;;
-        8) test_8 ;;
-        9) test_9 ;;
-        10) test_10 ;;
-        11) test_11 ;;
-        12) test_12 ;;
+        5) test_5a ;;
+        6) test_5b ;;
+        7) test_6a ;;
+        8) test_6b ;;
+        9) test_7a ;;
+        10) test_7ba ;;
+        11) test_7bb ;;
+        12) test_8 ;;
         13) run_all ;;
         14) exit 0 ;;
         *) echo "Invalid choice!" ;;
@@ -734,40 +744,35 @@ interactive_mode() {
 }
 
 # ==== SCRIPT EXECUTION ====
-
-
-
-
-
-# Falls ein Argument mitgegeben wird, führe nur diesen Test aus
+# If argument falls in the test case name
 if [[ "$1" == "all" ]]; then
     run_all
-elif [[ "$1" == "baseline" ]]; then
-    baseline
-elif [[ "$1" == "test_2" ]]; then
-    test_2
-elif [[ "$1" == "test_3" ]]; then
-    test_3
+elif [[ "$1" == "test_1" ]]; then
+    test_1
+elif [[ "$1" == "test_3a" ]]; then
+    test_3a
+elif [[ "$1" == "test_3b" ]]; then
+    test_3b
 elif [[ "$1" == "test_4" ]]; then
     test_4
-elif [[ "$1" == "test_5" ]]; then
-    test_5
-elif [[ "$1" == "test_6" ]]; then
-    test_6
-elif [[ "$1" == "test_7" ]]; then
-    test_7
+elif [[ "$1" == "test_5a" ]]; then
+    test_5a
+elif [[ "$1" == "test_5b" ]]; then
+    test_5b
+elif [[ "$1" == "test_6a" ]]; then
+    test_6a
+elif [[ "$1" == "test_6b" ]]; then
+    test_6b
+elif [[ "$1" == "test_7a" ]]; then
+    test_7a
+elif [[ "$1" == "test_7ba" ]]; then
+    test_7ba
+elif [[ "$1" == "test_7bb" ]]; then
+    test_7bb
 elif [[ "$1" == "test_8" ]]; then
     test_8
-elif [[ "$1" == "test_9" ]]; then
-    test_9
-elif [[ "$1" == "test_10" ]]; then
-    test_10
-elif [[ "$1" == "test_11" ]]; then
-    test_11
-elif [[ "$1" == "test_12" ]]; then
-    test_12
 elif [[ -z "$1" ]]; then
     interactive_mode
 else
-    echo "Invalid argument. Use 'all', 'test_1', 'test_2', or 'test_3, .... test_12."
+    echo "Invalid argument. Use 'all', a specific test name (e.g., 'test_1', 'test_3a'), or no argument for interactive mode."
 fi
