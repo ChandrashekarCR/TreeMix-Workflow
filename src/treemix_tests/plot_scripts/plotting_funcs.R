@@ -1,15 +1,15 @@
 #!/usr/bin/env Rscript
-#
+
 # TreeMix Plotting Functions
 # Custom implementation of TreeMix plotting functions without bugs
 # Based on original plotting_funcs.R but with fixes and improvements
-#
+
 
 library(RColorBrewer)
 
-#' Set Y coordinates for tree vertices
-#' @param d Dataframe of vertices
-#' @return Dataframe with y coordinates set
+# Set Y coordinates for tree vertices
+# Dataframe of vertices
+# Dataframe with y coordinates set
 set_y_coords <- function(d) {
   i <- which(d[,3] == "ROOT")
   y <- d[i,8] / (d[i,8] + d[i,10])
@@ -38,10 +38,10 @@ set_y_coords <- function(d) {
   return(d)
 }
 
-#' Set Y coordinate for a single vertex
-#' @param d Dataframe of vertices
-#' @param i Index of vertex to set
-#' @return Updated dataframe
+# Set Y coordinate for a single vertex
+# d Dataframe of vertices
+# i Index of vertex to set
+# Updated dataframe
 set_y_coord <- function(d, i) {
   index <- d[i,1]
   parent <- d[i,6]
@@ -79,10 +79,10 @@ set_y_coord <- function(d, i) {
   return(d)
 }
 
-#' Set X coordinates for tree vertices
-#' @param d Dataframe of vertices
-#' @param e Dataframe of edges
-#' @return Dataframe with x coordinates set
+# Set X coordinates for tree vertices
+# d Dataframe of vertices
+# e Dataframe of edges
+# Dataframe with x coordinates set
 set_x_coords <- function(d, e) {
   i <- which(d[,3] == "ROOT")
   index <- d[i,1]
@@ -127,11 +127,11 @@ set_x_coords <- function(d, e) {
   return(d)
 }
 
-#' Set X coordinate for a single vertex
-#' @param d Dataframe of vertices
-#' @param e Dataframe of edges
-#' @param i Index of vertex to set
-#' @return Updated dataframe
+# Set X coordinate for a single vertex
+# d Dataframe of vertices
+# e Dataframe of edges
+# i Index of vertex to set
+# Updated dataframe
 set_x_coord <- function(d, e, i) {
   index <- d[i,1]
   parent <- d[i,6]
@@ -162,12 +162,12 @@ set_x_coord <- function(d, e, i) {
   return(d)
 }
 
-#' Get distance to non-migration node
-#' @param d Dataframe of vertices
-#' @param e Dataframe of edges
-#' @param n1 Node 1
-#' @param n2 Node 2
-#' @return Distance
+# Get distance to non-migration node
+# d Dataframe of vertices
+# e Dataframe of edges
+# n1 Node 1
+# n2 Node 2
+# Distance
 get_dist_to_nmig <- function(d, e, n1, n2) {
   toreturn <- e[e[,1] == n1 & e[,2] == n2, 3]
   while (d[d[,1] == n2, 4] == "MIG") {
@@ -178,10 +178,10 @@ get_dist_to_nmig <- function(d, e, n1, n2) {
   return(toreturn)
 }
 
-#' Set migration coordinates
-#' @param d Dataframe of vertices
-#' @param e Dataframe of edges
-#' @return Updated dataframe
+# Set migration coordinates
+# d Dataframe of vertices
+# e Dataframe of edges
+# Updated dataframe
 set_mig_coords <- function(d, e) {
   for (j in 1:nrow(d)) {
     if (d[j,4] == "MIG") {
@@ -204,10 +204,10 @@ set_mig_coords <- function(d, e) {
   return(d)
 }
 
-#' Flip children of a node
-#' @param d Dataframe of vertices
-#' @param n Node to flip
-#' @return Updated dataframe
+# Flip children of a node
+# d Dataframe of vertices
+# n Node to flip
+# Updated dataframe
 flip_node <- function(d, n) {
   i <- which(d[,1] == n)
   t1 <- d[i,7]
