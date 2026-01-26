@@ -11,7 +11,7 @@ CONDA_ENV_NAME = treemix_env
 .DEFAULT_GOAL := all
 SHELL := bash
 .SHELLFLAGS := -euo pipefail -c
-.PHONY: all clean conda_env test lint build run help plink
+.PHONY: all clean conda_env check-scripts test lint build run help plink
 .SUFFIXES:
 .DELETE_ON_ERROR:
 
@@ -51,3 +51,6 @@ plink:
 	@./bin/plink/plink --version
 	@echo "[plink] ok"
 
+check-scripts: # Fail if any of these bash files have warnring
+	@shellcheck src/plink_script.sh || (echo '[shellcheck] failed' >&2; exit 1)
+	@echo "[shellcheck] ok"

@@ -55,11 +55,9 @@ convert_plink_to_treemix() {
 }
 
 
-
-
 # ==== LOCAL FUNCTIONS ====
 # Creates a results directory
-mkdir -p $RESULTS_DIR
+mkdir -p "$RESULTS_DIR"
 
 # Standard Quality Control: Baseline Dataset
 # ---------------------------------------------------
@@ -76,12 +74,12 @@ baseline() {
     echo "===== Running Standard Quality Control ===== "
     # Creates results directory
     OUT_DIR="$RESULTS_DIR/baseline/plink_results"
-    mkdir -p $OUT_DIR
+    mkdir -p "$OUT_DIR"
     PREFIX="$OUT_DIR/baseline"
 
-    $PLINK --bfile $RAW_DATA --geno --maf --make-bed --out $PREFIX
+    $PLINK --bfile "$RAW_DATA" --geno --maf --make-bed --out "$PREFIX"
 
-    convert_plink_to_treemix $PREFIX $OUT_DIR $POP_LIST
+    convert_plink_to_treemix "$PREFIX" "$OUT_DIR" "$POP_LIST"
 }
 
 
@@ -102,7 +100,7 @@ test_3a() {
 
     # Creates results directory
     OUT_DIR="$RESULTS_DIR/experiment_3a/plink_results"
-    mkdir -p $OUT_DIR
+    mkdir -p "$OUT_DIR"
 
     # Define missingness thresholds to test
     GENO_THRESHOLDS=("0.05" "0.01" "0.00")
@@ -113,7 +111,7 @@ test_3a() {
           echo "Running PLINK filtering with genotype missingness threshold: $GENO"
           "$PLINK" --bfile "$RAW_DATA" --geno "$GENO" --maf --make-bed --out "$PREFIX"
 
-          convert_plink_to_treemix $PREFIX $OUT_DIR $POP_LIST
+          convert_plink_to_treemix "$PREFIX" "$OUT_DIR" "$POP_LIST"
 
 
     done
@@ -137,12 +135,12 @@ test_3b() {
     # Creates results directory
     echo "===== Running Experiment 3b: Minor Allele Frequency ===== "
     OUT_DIR="$RESULTS_DIR/experiment_3b/plink_results"
-    mkdir -p $OUT_DIR
+    mkdir -p "$OUT_DIR"
     PREFIX="$OUT_DIR/3_minor_allele_freq_005"
 
-    $PLINK --bfile $RAW_DATA --geno --maf 0.05 --make-bed --out $PREFIX
+    $PLINK --bfile "$RAW_DATA" --geno --maf 0.05 --make-bed --out "$PREFIX"
 
-    convert_plink_to_treemix $PREFIX $OUT_DIR $POP_LIST
+    convert_plink_to_treemix "$PREFIX" "$OUT_DIR" "$POP_LIST"
 
     echo "Experiment 3b completed. Results in: $OUT_DIR"
 }
@@ -166,7 +164,7 @@ test_4() {
     # Creates results directory
     echo "===== Running Experiment 4: Addition of Archaic Homonin Genomes ===== "
     OUT_DIR="$RESULTS_DIR/experiment_4/plink_results"
-    mkdir -p $OUT_DIR
+    mkdir -p "$OUT_DIR"
 
     # Function to process a hominin population (Denisovan or Vindija)
     process_hominin() {
@@ -175,12 +173,12 @@ test_4() {
 
         echo "Processing $POP_NAME individuals..."
 
-        python3 $POPMANIPULATION new_outgroup "$POP_LIST" "$POP_NAME" "$OUT_DIR"
+        python3 "$POPMANIPULATION" new_outgroup "$POP_LIST" "$POP_NAME" "$OUT_DIR"
 
         local CUR_POP_LIST="${OUT_DIR}/added_${POP_NAME}.tsv"
 
         echo "Filtering dataset for $POP_NAME individuals..."
-        $PLINK --bfile $RAW_DATA --keep "$CUR_POP_LIST"  --geno --maf --make-bed --out "$PREFIX"
+        $PLINK --bfile "$RAW_DATA" --keep "$CUR_POP_LIST"  --geno --maf --make-bed --out "$PREFIX"
 
         convert_plink_to_treemix "$PREFIX" "$OUT_DIR" "$CUR_POP_LIST"
 
@@ -214,7 +212,7 @@ test_4() {
 test_5a() {
     echo "===== Running Experiment 5a: Uneven Sampling ===== "
     OUT_DIR="$RESULTS_DIR/experiment_5a/plink_results"
-    mkdir -p $OUT_DIR
+    mkdir -p "$OUT_DIR"
 
     # Define percentages for removal
     MAX_PER_POP=(3 5)
@@ -237,16 +235,16 @@ test_5a() {
         fi
 
         # Generate the list of populations to remove
-        python3 "$POPMANIPULATION" reduce_population_counts "$POP_LIST" $CUR_POP_LIST $POPULATIONS $MAX
+        python3 "$POPMANIPULATION" reduce_population_counts "$POP_LIST" "$CUR_POP_LIST" "$POPULATIONS" "$MAX"
 
         # Define prefix based on percentage
         PREFIX_OUT="${OUT_DIR}/5a_filtered_${MAX}"
 
         # Remove the selected populations and generate new PLINK files
-        $PLINK --bfile "$RAW_DATA" --keep $CUR_POP_LIST --maf --geno --make-bed --out "$PREFIX_OUT"
+        $PLINK --bfile "$RAW_DATA" --keep "$CUR_POP_LIST" --maf --geno --make-bed --out "$PREFIX_OUT"
 
         # Convert to TreeMix format
-        convert_plink_to_treemix "$PREFIX_OUT" "$OUT_DIR" $CUR_POP_LIST
+        convert_plink_to_treemix "$PREFIX_OUT" "$OUT_DIR" "$CUR_POP_LIST"
     done
 
     echo "Experiment 5a completed. Results in: $OUT_DIR"
@@ -269,7 +267,7 @@ test_5a() {
 test_5b() {
     echo "===== Running Experiment 5b: Even Sampling ===== "
     OUT_DIR="$RESULTS_DIR/experiment_5b/plink_results"
-    mkdir -p $OUT_DIR
+    mkdir -p "$OUT_DIR"
 
     # Define different sample sizes to test
     SAMPLESIZES=(3 4 5 6)
@@ -283,13 +281,13 @@ test_5b() {
         echo "Processing test case: $SAMPLESIZE individuals"
 
         # Create new pop_list with reduced sample sizes
-        python3 $POPMANIPULATION generate_pop_lists $POP_LIST $SAMPLESIZE $OUT_DIR --num-populations all --random-state $RANDOMSTATE
+        python3 "$POPMANIPULATION" generate_pop_lists "$POP_LIST" "$SAMPLESIZE" "$OUT_DIR" --num-populations all --random-state $RANDOMSTATE
 
         # Filter dataset for selected individuals
         echo "Filtering dataset: Keeping manipulated populations with $SAMPLESIZE..."
-        $PLINK --bfile $RAW_DATA --keep $CURR_POP_LIST --geno --maf --make-bed --out $PREFIX
+        $PLINK --bfile "$RAW_DATA" --keep "$CURR_POP_LIST" --geno --maf --make-bed --out "$PREFIX"
 
-        convert_plink_to_treemix $PREFIX $OUT_DIR $CURR_POP_LIST
+        convert_plink_to_treemix "$PREFIX" "$OUT_DIR" "$CURR_POP_LIST"
 
         done
 
@@ -312,7 +310,7 @@ test_5b() {
 test_6a() {
     echo "===== Running Experiment 6a: Drop specific populations  ===== "
     OUT_DIR="$RESULTS_DIR/experiment_6a/plink_results"
-    mkdir -p $OUT_DIR
+    mkdir -p "$OUT_DIR"
 
     # Drop 14 and 20 populations respectively
     NUM_POPS=(14 20)
@@ -332,13 +330,13 @@ test_6a() {
               exit 1
         fi
 
-        python3 $POPMANIPULATION drop_specific_populations $POP_LIST $CUR_POP_LIST "${POPULATIONS[@]}"
+        python3 "$POPMANIPULATION" drop_specific_populations "$POP_LIST" "$CUR_POP_LIST" "${POPULATIONS[@]}"
 
-        $PLINK --bfile $RAW_DATA --remove $CUR_POP_LIST --geno --maf --make-bed --out "$PREFIX"
+        $PLINK --bfile "$RAW_DATA" --remove "$CUR_POP_LIST" --geno --maf --make-bed --out "$PREFIX"
 
         echo "Dataset $PREFIX created."
 
-        convert_plink_to_treemix $PREFIX $OUT_DIR $POP_LIST
+        convert_plink_to_treemix "$PREFIX" "$OUT_DIR" "$POP_LIST"
 
     done
     echo "Experiment 6a completed. Results in: $OUT_DIR"
@@ -360,7 +358,7 @@ test_6a() {
 test_6b() {
     echo "===== Running Experiment 6b: Remove continental populations ===== "
     OUT_DIR="$RESULTS_DIR/experiment_6b/plink_results"
-    mkdir -p $OUT_DIR
+    mkdir -p "$OUT_DIR"
 
     # List of continents to remove
     continents=("Europe" "North Africa" "Middle East" "Asia" "America" "Oceania")
@@ -373,14 +371,14 @@ test_6b() {
         remove_file="${OUT_DIR}/remove_${safe_continent}.tsv"
         PREFIX="$OUT_DIR/6b_dataset_no_${safe_continent}"
 
-        python3 $POPMANIPULATION drop_continents $POP_LIST "$continent" "$POP_MAPPING" "$OUT_DIR"
+        python3 "$POPMANIPULATION" drop_continents "$POP_LIST" "$continent" "$POP_MAPPING" "$OUT_DIR"
 
         # Run PLINK command
-        $PLINK --bfile $RAW_DATA --remove "$remove_file" --geno --maf --make-bed --out "$PREFIX"
+        $PLINK --bfile "$RAW_DATA" --remove "$remove_file" --geno --maf --make-bed --out "$PREFIX"
 
         echo "Dataset $PREFIX created."
 
-        convert_plink_to_treemix $PREFIX $OUT_DIR $POP_LIST
+        convert_plink_to_treemix "$PREFIX" "$OUT_DIR" "$POP_LIST"
     done
 
     echo "All datasets processed. Results in: $OUT_DIR"
@@ -401,19 +399,19 @@ test_6b() {
 test_7a() {
     echo "===== Running Experiment 7a: Drop specific historical admixed populations ===== "
     OUT_DIR="$RESULTS_DIR/experiment_7a/plink_results"
-    mkdir -p $OUT_DIR
+    mkdir -p "$OUT_DIR"
     PREFIX="$OUT_DIR/7a_drop_admixed_pops"
     CURR_POP_LIST="${OUT_DIR}/remove_admixture_pops.tsv"
 
     admixed_pops=("Colombian" "Druze" "Karitiana" "Surui" "Balochi" "Brahui" "Burusho" "Hazara" "Kalash" "Makrani" "Pathan")
 
-    python3 $POPMANIPULATION drop_specific_populations $POP_LIST $CURR_POP_LIST "${admixed_pops[@]}"
+    python3 "$POPMANIPULATION" drop_specific_populations "$POP_LIST" "$CURR_POP_LIST" "${admixed_pops[@]}"
 
-    $PLINK --bfile $RAW_DATA --remove $CURR_POP_LIST --geno --maf --make-bed --out "$PREFIX"
+    $PLINK --bfile "$RAW_DATA" --remove "$CURR_POP_LIST" --geno --maf --make-bed --out "$PREFIX"
 
     echo "Dataset $PREFIX created."
 
-    convert_plink_to_treemix $PREFIX $OUT_DIR $POP_LIST
+    convert_plink_to_treemix "$PREFIX" "$OUT_DIR" "$POP_LIST"
 
     echo "Experiment 7a completed. Results in: $OUT_DIR"
 }
@@ -434,25 +432,25 @@ test_7a() {
 test_7ba() {
     echo "===== Running Experiment 7ba: Artificial hybrid populations with two-mixtures ===== "
     OUT_DIR="$RESULTS_DIR/experiment_7ba/plink_results"
-    mkdir -p $OUT_DIR
+    mkdir -p "$OUT_DIR"
 
     HYBRID_DIR="$OUT_DIR/hybrids"
     LIST_DIR="$OUT_DIR/hybrid_lists"
 
     FINAL_HYBRID_PED="$HYBRID_DIR/all_hybrids.ped"
     FINAL_HYBRID_MAP="$HYBRID_DIR/all_hybrids.map"
-    NUM_POPS=2
+    NUM_HYBRID_POPS=2
 
     mkdir -p "$HYBRID_DIR" "$LIST_DIR"
 
     # Step 1: Prepare population .tsv lists and the .json file
-    python3 $POPMANIPULATION write_json_structures "$OUT_DIR" "$NUM_POPS"
-    STRUCTURE_JSON="${OUT_DIR}/${NUM_POPS}_structure.tsv"
+    python3 "$POPMANIPULATION" write_json_structures "$OUT_DIR" "$NUM_HYBRID_POPS"
+    STRUCTURE_JSON="${OUT_DIR}/${NUM_HYBRID_POPS}_structure.tsv"
 
     python3 "$POPMANIPULATION" prepare_groupwise_hybrid_lists "$POP_LIST" "$STRUCTURE_JSON" "$LIST_DIR"
 
     # Step 2: Create one big PED with all hybrids
-    > "$FINAL_HYBRID_PED"  # Empty file
+    true > "$FINAL_HYBRID_PED"  # Empty file
 
     MAP_COPIED=0
     # Create baseline dataset 
@@ -475,7 +473,7 @@ test_7ba() {
         python3 "$POPMANIPULATION" create_snpsplit_hybrids \
            "$HYBRID_DIR/$BASENAME.ped" \
            "$BASENAME" \
-           $(echo "$BASENAME" | tr '-' ' ') \
+           "$(echo "$BASENAME" | tr '-' ' ')" \
            "$HYBRID_DIR"
 
         # Append created hybrid .ped to final hybrid file
@@ -517,20 +515,20 @@ test_7ba() {
 test_7bb() {
     echo "===== Running Experiment 7bb: Artificial hybrid populations with two-mixtures ===== "
     OUT_DIR="$RESULTS_DIR/experiment_7bb/plink_results"
-    mkdir -p $OUT_DIR
+    mkdir -p "$OUT_DIR"
 
     HYBRID_DIR="$OUT_DIR/hybrids"
     LIST_DIR="$OUT_DIR/hybrid_lists"
 
     FINAL_HYBRID_PED="$HYBRID_DIR/all_hybrids.ped"
     FINAL_HYBRID_MAP="$HYBRID_DIR/all_hybrids.map"
-    NUM_POPS=5
+    NUM_HYBRID_POPS=5
 
     mkdir -p "$HYBRID_DIR" "$LIST_DIR"
 
     # Step 1: Prepare population .tsv lists and the .json file
-    python3 $POPMANIPULATION write_json_structures "$OUT_DIR" "$NUM_POPS"
-    STRUCTURE_JSON="${OUT_DIR}/${NUM_POPS}_structure.tsv"
+    python3 "$POPMANIPULATION" write_json_structures "$OUT_DIR" "$NUM_HYBRID_POPS"
+    STRUCTURE_JSON="${OUT_DIR}/${NUM_HYBRID_POPS}_structure.tsv"
 
     python3 "$POPMANIPULATION" prepare_groupwise_hybrid_lists "$POP_LIST" "$STRUCTURE_JSON" "$LIST_DIR"
 
@@ -538,7 +536,7 @@ test_7bb() {
     $PLINK --bfile "$RAW_DATA" --geno --maf --make-bed --out "$OUT_DIR/all"
 
     # Step 2: Create one big PED with all hybrids
-    > "$FINAL_HYBRID_PED"  # Empty file
+    true > "$FINAL_HYBRID_PED"  # Empty file
 
     MAP_COPIED=0
 
@@ -558,7 +556,7 @@ test_7bb() {
         python3 "$POPMANIPULATION" create_snpsplit_hybrids \
            "$HYBRID_DIR/$BASENAME.ped" \
            "$BASENAME" \
-           $(echo "$BASENAME" | tr '-' ' ') \
+           "$(echo "$BASENAME" | tr '-' ' ')" \
            "$HYBRID_DIR"
 
         # Append created hybrid .ped to final hybrid file
@@ -601,12 +599,12 @@ test_7bb() {
 # 3. Convert all hybrids to binary
 # 4. Merge all hybrids with full dataset
 # 5. Run TreeMix input converter
-#   
+
 
 test_12() {
     echo "===== Running Experiment 12: Artificial hybrid populations with five-mixtures same shuffeled ===== "
     OUT_DIR="$RESULTS_DIR/experiment_12/plink_results"
-    mkdir -p $OUT_DIR
+    mkdir -p "$OUT_DIR"
 
 
     PYTHON_SCRIPT="../scripts/artificial.py"
@@ -615,20 +613,20 @@ test_12() {
     FINAL_HYBRID_PED="$HYBRID_DIR/all_hybrids.ped"
     FINAL_HYBRID_MAP="$HYBRID_DIR/all_hybrids.map"
 
-    NUM_POPS=51
+    NUM_POPS_HYBRID=51
 
     mkdir -p "$HYBRID_DIR" "$LIST_DIR"
 
     # Step 1: Prepare population .tsv lists and the .json file
-    python3 $POPMANIPULATION write_json_structures "$OUT_DIR" "$NUM_POPS"
-    STRUCTURE_JSON="${OUT_DIR}/${NUM_POPS}_structure.tsv"
+    python3 "$POPMANIPULATION" write_json_structures "$OUT_DIR" "$NUM_POPS_HYBRID"
+    STRUCTURE_JSON="${OUT_DIR}/${NUM_POPS_HYBRID}_structure.tsv"
     python3 "$PYTHON_SCRIPT" prepare --poplist "$POP_LIST" --structure "$STRUCTURE_JSON" --outdir "$LIST_DIR"
 
     # Create baseline dataset 
     $PLINK --bfile "$RAW_DATA" --geno --maf --make-bed --out "$OUT_DIR/all"
     
     # Step 2: Create one big PED with all hybrids
-    > "$FINAL_HYBRID_PED"  # Empty file
+    true > "$FINAL_HYBRID_PED"  # Empty file
 
     MAP_COPIED=0
 
@@ -648,7 +646,7 @@ test_12() {
         python3 "$PYTHON_SCRIPT" create \
           --ped "$HYBRID_DIR/$BASENAME.ped" \
           --hybrid_label "$BASENAME" \
-          --pops $(echo "$BASENAME" | tr '-' ' ') \
+          --pops "$(echo "$BASENAME" | tr '-' ' ')" \
           --outdir "$HYBRID_DIR"
 
         # Append created hybrid .ped to final hybrid file
@@ -715,7 +713,7 @@ interactive_mode() {
     echo "13) Run all tests"
     echo "14) Exit"
 
-    read -p "Enter your choice: " choice
+    read -r -p "Enter your choice: " choice
     case $choice in
         1) baseline ;;
         2) test_2 ;;
