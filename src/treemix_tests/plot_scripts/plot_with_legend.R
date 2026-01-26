@@ -22,83 +22,6 @@ script_dir <- get_script_dir()
 source(file.path(script_dir, "plotting_funcs.R"))
 #source("/home/inf-21-2024/miniconda3/envs/treemix_env/bin/plotting_funcs.R")
 
-#' Get continental region colors
-#' @return Named list of colors for each region
-get_region_colors <- function() {
-  return(list(
-    "Subsaharan Africa" = "#E41A1C",    # Red
-    "North Africa" = "#FF7F00",         # Orange  
-    "Europe" = "#4a62af",               # Green (not blue!)
-    "Oceania" = "#984EA3",              # Purple
-    "America" = "#F781BF",              # Pink
-    "Asia" = "#377EB8",                 # Blue (not dark green!)
-    "Middle East" = "#A65628"           # Brown (not purple!)
-  ))
-}
-
-#' Load region mapping from JSON file
-#' @param json_file Path to region_mapping.json
-#' @return Data frame with population and region columns
-load_region_mapping <- function(json_file = "/home/inf-21-2024/projects/Treemix/raw_data/region_mapping.json") {
-  if (!file.exists(json_file)) {
-    warning(sprintf("Region mapping file not found: %s", json_file))
-    return(NULL)
-  }
-  
-  region_data <- fromJSON(json_file)
-  df <- data.frame(
-    population = names(region_data),
-    region = as.character(region_data),
-    stringsAsFactors = FALSE
-  )
-  return(df)
-}
-
-#' Create population color mapping
-#' @param region_mapping Data frame from load_region_mapping()
-#' @return Data frame with population and color columns
-create_population_colors <- function(region_mapping = NULL) {
-  if (is.null(region_mapping)) {
-    region_mapping <- load_region_mapping()
-  }
-  
-  if (is.null(region_mapping)) {
-    return(NULL)
-  }
-  
-  region_colors <- get_region_colors()
-  
-  pop_colors <- data.frame(
-    population = region_mapping$population,
-    color = sapply(region_mapping$region, function(r) region_colors[[r]]),
-    stringsAsFactors = FALSE
-  )
-  
-  return(pop_colors)
-}
-
-#' Add region legend to plot
-#' @param x X position ("topright", "topleft", "bottomright", "bottomleft", or numeric)
-#' @param y Y position (numeric, or NULL if x is character)
-#' @param cex Text size
-#' @param title Legend title
-add_region_legend <- function(x = "topright", y = NULL, cex = 0.7, title = "Continental regions") {
-  region_colors <- get_region_colors()
-  
-  legend(
-    x = x,
-    y = y,
-    legend = names(region_colors),
-    col = unlist(region_colors),
-    pch = 15,
-    pt.cex = 1.5,
-    cex = cex,
-    title = title,
-    bty = "n",
-    bg = "white"
-  )
-}
-
 #' Plot TreeMix tree with legend
 #' @param stem Prefix of TreeMix output files (without extensions)
 #' @param output_file Output filename (PDF or PNG)
@@ -131,17 +54,6 @@ plot_treemix_with_legend <- function(stem,
     stop(sprintf("TreeMix output files not found for stem: %s", stem))
   }
   
-  # Prepare color file - write to temp file for plot_tree function
-  color_file <- NA
-  if (use_colors) {
-    color_data <- create_population_colors()
-    if (!is.null(color_data)) {
-      color_file <- tempfile(fileext = ".txt")
-      write.table(color_data, color_file, quote = FALSE, row.names = FALSE, 
-                  col.names = FALSE, sep = "\t")
-    }
-  }
-  
   # Determine output file if not provided
   if (is.null(output_file)) {
     output_file <- paste0(stem, "_plot.pdf")
@@ -163,13 +75,8 @@ plot_treemix_with_legend <- function(stem,
   }
   
   # Plot the tree
-  # Flip nodes to position San outgroup at the top of the tree:
-  # 76 = ROOT node (swap African branch to top)
-  # 2372 = African cluster node (swap San/Pygmy branch to top)
-  # 1504 = Pygmy cluster node (swap San/MbutiPygmy to top)
   result <- plot_tree(
     stem = stem,
-    o = color_file,
     cex = cex,
     disp = displacement,
     plus = 0.01,
@@ -180,22 +87,16 @@ plot_treemix_with_legend <- function(stem,
     mbar = TRUE,
     plotmig = plot_migrations,
     plotnames = TRUE,
+    changed_pops_path = '/home/inf-21-2024/projects/treemix_project/comparision_results/test_comparison_differences.txt',
     xmin = 0,
     lwd = lwd,
-    font = font
+    font = font,
+    use_region_colors = use_colors,
+    add_legend = add_legend,
+    legend_pos = legend_pos
   )
   
-  # Add legend if requested
-  if (add_legend && use_colors) {
-    add_region_legend(x = legend_pos, cex = 0.7)
-  }
-  
   dev.off()
-  
-  # Clean up temp file
-  if (!is.na(color_file) && file.exists(color_file)) {
-    unlink(color_file)
-  }
   
   cat(sprintf("Plot saved to: %s\n", output_file))
   return(invisible(result))

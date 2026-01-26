@@ -6,6 +6,92 @@
 
 
 library(RColorBrewer)
+library(jsonlite)
+
+# ============================================================================
+# Region Mapping and Legend Functions
+# ============================================================================
+
+#' Get continental region colors
+#' @return Named list of colors for each region
+get_region_colors <- function() {
+  return(list(
+    "Subsaharan Africa" = "#E41A1C",    # Red
+    "North Africa" = "#FF7F00",         # Orange  
+    "Europe" = "#4a62af",               # Blue
+    "Oceania" = "#984EA3",              # Purple
+    "America" = "#F781BF",              # Pink
+    "Asia" = "#377EB8",                 # Light Blue
+    "Middle East" = "#A65628"           # Brown
+  ))
+}
+
+#' Load region mapping from JSON file
+#' @param json_file Path to region_mapping.json
+#' @return Data frame with population and region columns
+load_region_mapping <- function(json_file = "/home/inf-21-2024/projects/treemix_project/raw_data/region_mapping.json") {
+  if (!file.exists(json_file)) {
+    warning(sprintf("Region mapping file not found: %s", json_file))
+    return(NULL)
+  }
+  
+  region_data <- fromJSON(json_file)
+  df <- data.frame(
+    population = names(region_data),
+    region = as.character(region_data),
+    stringsAsFactors = FALSE
+  )
+  return(df)
+}
+
+#' Create population color mapping
+#' @param region_mapping Data frame from load_region_mapping()
+#' @return Data frame with population and color columns
+create_population_colors <- function(region_mapping = NULL) {
+  if (is.null(region_mapping)) {
+    region_mapping <- load_region_mapping()
+  }
+  
+  if (is.null(region_mapping)) {
+    return(NULL)
+  }
+  
+  region_colors <- get_region_colors()
+  
+  pop_colors <- data.frame(
+    population = region_mapping$population,
+    color = sapply(region_mapping$region, function(r) region_colors[[r]]),
+    stringsAsFactors = FALSE
+  )
+  
+  return(pop_colors)
+}
+
+#' Add region legend to plot
+#' @param x X position ("topright", "topleft", "bottomright", "bottomleft", or numeric)
+#' @param y Y position (numeric, or NULL if x is character)
+#' @param cex Text size
+#' @param title Legend title
+add_region_legend <- function(x = "topright", y = NULL, cex = 0.7, title = "Continental regions") {
+  region_colors <- get_region_colors()
+  
+  legend(
+    x = x,
+    y = y,
+    legend = names(region_colors),
+    col = unlist(region_colors),
+    pch = 15,
+    pt.cex = 1.5,
+    cex = cex,
+    title = title,
+    bty = "n",
+    bg = "white"
+  )
+}
+
+# ============================================================================
+# Core Tree Coordinate Functions
+# ============================================================================
 
 # Set Y coordinates for tree vertices
 # Dataframe of vertices
@@ -236,10 +322,15 @@ flip_node <- function(d, n) {
 #' @param xmin Minimum x value
 #' @param lwd Line width
 #' @param font Font type (1=normal, 2=bold, 3=italic, 4=bold italic)
+#' @param mark_changes Whether to highlight changed populations
+#' @param changed_pops_path Path to file containing changed population names (one per line)
+#' @param add_legend Whether to add continental region legend
+#' @param legend_pos Legend position ("topright", "topleft", "bottomright", "bottomleft")
 plot_tree_internal <- function(d, e, o = NA, cex = 1, disp = 0.005, plus = 0.005, 
                                 arrow = 0.05, ybar = 0.01, scale = TRUE, mbar = TRUE, 
                                 mse = 0.01, plotmig = TRUE, plotnames = TRUE, xmin = 0, 
-                                lwd = 1, font = 1) {
+                                lwd = 1, font = 1, mark_changes = FALSE, changed_pops_path = NULL,
+                                add_legend = FALSE, legend_pos = "topright") {
   
   # Create base plot
   plot(d$x, d$y, axes = FALSE, ylab = "", xlab = "Drift parameter", 
@@ -281,20 +372,69 @@ plot_tree_internal <- function(d, e, o = NA, cex = 1, disp = 0.005, plus = 0.005
   # Plot tip labels
   tmp <- d[d[,5] == "TIP",]
   
+  # Read changed populations if mark_changes is enabled
+  changed_pops <- c()
+  if (mark_changes && !is.null(changed_pops_path)) {
+    if (file.exists(changed_pops_path)) {
+      changed_pops <- readLines(changed_pops_path)
+    } else {
+      warning(paste("Changed populations file not found:", changed_pops_path))
+    }
+  }
+  
   # Fixed color handling - check if o is NA or a dataframe
   if (length(o) == 1 && is.na(o)) {
     # No colors provided
     if (plotnames) {
-      text(tmp$x + disp, tmp$y, labels = tmp[,2], adj = 0, cex = cex, font = font)
+      for (i in 1:nrow(tmp)) {
+        node_name <- tmp[i,2]
+        font_weight <- ifelse(node_name %in% changed_pops, 4, font)
+        
+        # Draw highlighting rectangle if this population changed
+        if (node_name %in% changed_pops) {
+          label_width <- strwidth(node_name, cex = cex, font = font_weight)
+          label_height <- strheight(node_name, cex = cex, font = font_weight)
+          
+          rect(
+            xleft = (tmp[i,]$x + disp) * 0.995,
+            ybottom = (tmp[i,]$y - label_height / 2) * 0.995,
+            xright = (tmp[i,]$x + disp + label_width) * 1.005,
+            ytop = (tmp[i,]$y + label_height / 2) * 1.005,
+            border = adjustcolor("red", alpha.f = 0.6),
+            col = rgb(1, 1, 1, alpha = 0)
+          )
+        }
+        
+        text(tmp[i,]$x + disp, tmp[i,]$y, labels = node_name, 
+             adj = 0, cex = cex, font = font_weight)
+      }
     }
   } else {
     # Colors provided as dataframe
     if (plotnames) {
       for (i in 1:nrow(tmp)) {
-        tcol <- o[o[,1] == tmp[i,2], 2]
+        node_name <- tmp[i,2]
+        tcol <- o[o[,1] == node_name, 2]
         if (length(tcol) == 0) tcol <- "black"
-        text(tmp[i,]$x + disp, tmp[i,]$y, labels = tmp[i,2], 
-             adj = 0, cex = cex, col = tcol, font = font)
+        font_weight <- ifelse(node_name %in% changed_pops, 4, font)
+        
+        # Draw highlighting rectangle if this population changed
+        if (node_name %in% changed_pops) {
+          label_width <- strwidth(node_name, cex = cex, font = font_weight)
+          label_height <- strheight(node_name, cex = cex, font = font_weight)
+          
+          rect(
+            xleft = (tmp[i,]$x + disp) * 0.995,
+            ybottom = (tmp[i,]$y - label_height / 2) * 0.995,
+            xright = (tmp[i,]$x + disp + label_width) * 1.005,
+            ytop = (tmp[i,]$y + label_height / 2) * 1.005,
+            border = adjustcolor("red", alpha.f = 0.6),
+            col = rgb(1, 1, 1, alpha = 0)
+          )
+        }
+        
+        text(tmp[i,]$x + disp, tmp[i,]$y, labels = node_name, 
+             adj = 0, cex = cex, col = tcol, font = font_weight)
       }
     }
   }
@@ -327,11 +467,16 @@ plot_tree_internal <- function(d, e, o = NA, cex = 1, disp = 0.005, plus = 0.005
     text(0, yma + 0.06, lab = "Migration", adj = 0, cex = 0.6)
     text(0, yma + 0.03, lab = "weight", adj = 0, cex = 0.6)
   }
+  
+  # Add region legend if requested and colors are being used
+  if (add_legend && !(length(o) == 1 && is.na(o))) {
+    add_region_legend(x = legend_pos, cex = 0.7)
+  }
 }
 
 #' Main function to plot a TreeMix tree
 #' @param stem File stem (path without extension)
-#' @param o Color file or NA
+#' @param o Color file or NA. If NA and use_region_colors=TRUE, colors from region mapping will be used
 #' @param cex Text size
 #' @param disp Text displacement
 #' @param plus Extra space on right
@@ -345,10 +490,17 @@ plot_tree_internal <- function(d, e, o = NA, cex = 1, disp = 0.005, plus = 0.005
 #' @param xmin Minimum x value
 #' @param lwd Line width
 #' @param font Font type
+#' @param mark_changes Whether to highlight changed populations
+#' @param changed_pops_path Path to file containing changed population names (one per line)
+#' @param use_region_colors Whether to automatically color populations by continental region
+#' @param add_legend Whether to add continental region legend (only if using region colors)
+#' @param legend_pos Legend position ("topright", "topleft", "bottomright", "bottomleft")
 #' @return List with vertices (d) and edges (e) dataframes
 plot_tree <- function(stem, o = NA, cex = 1, disp = 0.003, plus = 0.01, flip = vector(), 
                       arrow = 0.05, scale = TRUE, ybar = 0.1, mbar = TRUE, plotmig = TRUE, 
-                      plotnames = TRUE, xmin = 0, lwd = 1, font = 1) {
+                      plotnames = TRUE, xmin = 0, lwd = 1, font = 1, mark_changes = FALSE, 
+                      changed_pops_path = NULL, use_region_colors = FALSE, add_legend = FALSE,
+                      legend_pos = "topright") {
   
   # Read data files
   d <- paste(stem, ".vertices.gz", sep = "")
@@ -358,8 +510,17 @@ plot_tree <- function(stem, o = NA, cex = 1, disp = 0.003, plus = 0.01, flip = v
   d <- read.table(gzfile(d), as.is = TRUE, comment.char = "", quote = "")
   e <- read.table(gzfile(e), as.is = TRUE, comment.char = "", quote = "")
   
-  # Read color file if provided
-  if (!is.na(o) && is.character(o)) {
+  # Handle color input
+  if (use_region_colors && (length(o) == 1 && is.na(o))) {
+    # Use continental region colors
+    color_data <- create_population_colors()
+    if (!is.null(color_data)) {
+      o <- color_data
+    } else {
+      warning("Could not load region colors, plotting without colors")
+    }
+  } else if (!is.na(o) && is.character(o)) {
+    # Read color file if path provided
     o <- read.table(o, as.is = TRUE, comment.char = "", quote = "")
   }
   
@@ -394,7 +555,9 @@ plot_tree <- function(stem, o = NA, cex = 1, disp = 0.003, plus = 0.01, flip = v
   # Plot
   plot_tree_internal(d, e, o = o, cex = cex, xmin = xmin, disp = disp, plus = plus, 
                      arrow = arrow, ybar = ybar, mbar = mbar, mse = m, scale = scale, 
-                     plotmig = plotmig, plotnames = plotnames, lwd = lwd, font = font)
+                     plotmig = plotmig, plotnames = plotnames, lwd = lwd, font = font,
+                     mark_changes = mark_changes, changed_pops_path = changed_pops_path,
+                     add_legend = add_legend, legend_pos = legend_pos)
   
   return(list(d = d, e = e))
 }

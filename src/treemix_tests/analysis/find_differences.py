@@ -1,3 +1,4 @@
+# Importing Libraries
 import gzip
 import json
 import os
@@ -382,10 +383,10 @@ def main(baseline_path: str, tree_path: str, output_dir: str, basename: str,  pr
 
 if __name__ == '__main__':
     main(
-        baseline_path="../../290425_results/experiments/baseline/treemix_output/baseline_m_8_output.treeout.gz",
-        tree_path="../../290425_results/experiments/experiment_8/treemix_output/8_dataset_no_East_Asia_m_8_output.treeout.gz",
+        baseline_path="/home/inf-21-2024/projects/treemix_project/plots/appendix/m_test/baseline_m_1_output.treeout.gz",
+        tree_path="/home/inf-21-2024/projects/treemix_project/plots/appendix/m_test/baseline_m_6_output.treeout.gz",
         output_dir="comparision_results/",
-        basename="8_dataset_no_East_Asia_m_8_output",
+        basename="test_comparison",
         pruned=True
     )
 
