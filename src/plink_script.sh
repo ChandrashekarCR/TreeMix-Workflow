@@ -387,8 +387,11 @@ test_6a() {
 
             convert_plink_to_treemix "$PREFIX" "$OUT_DIR" "$POP_LIST"
         } &
-
-        (($(jobs -r | wc -l) >= PARALLEL_JOBS)) && wait
+        
+        # Only wait if we have hit the parallel job limit
+        if (($(jobs -r | wc -l) >= PARALLEL_JOBS)); then 
+            wait -n # Wait for any one job to complete
+        fi
 
     done
 
@@ -440,10 +443,15 @@ test_6b() {
             convert_plink_to_treemix "$PREFIX" "$OUT_DIR" "$POP_LIST"
         } &
 
-        (($(jobs -r | wc -l) >= PARALLEL_JOBS)) && wait
+        #echo "Number of jobs runnning $(jobs -r | wc -l)"
+        # Only wait if we have hit the parallel job limit
+        if (($(jobs -r | wc -l) >= PARALLEL_JOBS)); then 
+            wait -n # Wait for any one job to complete
+        fi
 
     done
     
+    # Wait for all remaining jobs to complete
     wait 
     echo "All datasets processed. Results in: $OUT_DIR"
 }

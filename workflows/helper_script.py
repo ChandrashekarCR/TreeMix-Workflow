@@ -18,7 +18,7 @@ EXPERIMENTS = {
     "baseline": {
         "plink_test": "test_1",
         "plink_output":"baseline/plink_results/baseline_treemix.gz",
-        "variants": []
+        "variants": ['baseline']
     },
 
     # Experiment 2a: Treemix Parameters - SNP Block Size
@@ -140,17 +140,42 @@ EXPERIMENTS = {
 def get_all_plink_outputs():
     # Get all the plink output file names and store it in a list
     outputs = []
+    filename = []
     for exp_name, exp_config in EXPERIMENTS.items():
         if "plink_output" in exp_config.keys():
             write_out = f"{EXPERIMENTS_DIR}/{exp_config['plink_output']}"
             outputs.append(write_out)
+            #print(write_out.split('plink_results/')[-1].split('_treemix.gz')[0])
         else:
             variant_id = [var_name['name'] for var_name in exp_config['variants']]
             for id in variant_id:
                 write_out = f"{EXPERIMENTS_DIR}/experiment_{exp_name.split("_")[-1]}/plink_results/{exp_name.split("_")[-1]}_{id}_treemix.gz"
                 outputs.append(write_out)
     return outputs
-        
+
+def get_all_treemix_outputs():
+    outputs = []
+    for exp_name, exp_config in EXPERIMENTS.items():
+        # Determine experiment directory name
+        if exp_name == "baseline":
+            exp_dir = "baseline"
+            variant_names = ["baseline"]
+        elif (exp_name == "exp_2a") or (exp_name == "exp_2b"):
+            continue
+        else:
+            exp_dir = f"experiment_{exp_name.split('_')[-1]}"
+            variant_names = [v["name"] for v in exp_config["variants"]]
+
+        for variant in variant_names:
+            for mode in ["split", "migration"]:
+                for ext in ["treeout.gz", "vertices.gz", "edges.gz"]:
+                    outputs.append(
+                        f"{EXPERIMENTS_DIR}/{exp_dir}/treemix_results/{variant}_{mode}.{ext}"
+                    )
+    return outputs
+
+print(get_all_treemix_outputs())
+
 def get_outputs_for_test(exp_name):
     # Get all the ouput for a particular experiment
     outputs = []
@@ -168,7 +193,9 @@ def get_outputs_for_test(exp_name):
     return outputs       
     
 
-print(get_outputs_for_test("exp_5b"))
+
+#print([exp.replace("exp_","experiment_") if exp.startswith("exp") else exp for exp in EXPERIMENTS.keys()])
+
 
 def get_treemix_params(exp_name, k=None, mode='split'):
     params = {

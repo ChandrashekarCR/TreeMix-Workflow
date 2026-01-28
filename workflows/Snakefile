@@ -166,37 +166,51 @@ def get_outputs_for_test(exp_name):
                 outputs.append(write_out)
     return outputs       
 
-def get_treemix_params(exp_name, variant, mode):
-    params = {
-        'seed':SEED,
-        'k':SNP_SIZE,
-        'm': 0 if mode == 'split' else 10,
-        'root': ROOT
-    }
+def get_all_treemix_outputs():
+    outputs = []
+    for exp_name, exp_config in EXPERIMENTS.items():
+        # Determine experiment directory name
+        if exp_name == "baseline":
+            exp_dir = "baseline"
+            variant_names = ["baseline"]
+        elif (exp_name == "exp_2a") or (exp_name == "exp_2b"):
+            continue
+        else:
+            exp_dir = f"experiment_{exp_name.split('_')[-1]}"
+            variant_names = [v["name"] for v in exp_config["variants"]]
 
-    # Override if variant specific parameters
-    if "k" in variant:
-        params["k"] = variant["k"]
-    
-    if "m" in variant:
-        params["m"] = variant["m"]
-
-    return params
+        for variant in variant_names:
+            for mode in ["split", "migration"]:
+                for ext in ["treeout.gz", "vertices.gz", "edges.gz"]:
+                    outputs.append(
+                        f"{EXPERIMENTS_DIR}/{exp_dir}/treemix_results/{variant}_{mode}.{ext}"
+                    )
+    return outputs
 
 # ============ Rules ==================
 
-# RUle all: Define the output files I need
+# Rule all: Define the output files I need
 rule all:
     input:
+        # PLINK outputs
         #get_all_plink_outputs()
         get_outputs_for_test("baseline"),
         get_outputs_for_test("exp_3a"),
         get_outputs_for_test("exp_3b"),
         get_outputs_for_test("exp_4"),
-        #get_outputs_for_test("exp_5a"),
-        #get_outputs_for_test("exp_5b"),
-        #get_outputs_for_test("exp_6a"),
-        #get_outputs_for_test("exp_7a"),
+        get_outputs_for_test("exp_5a"),
+        get_outputs_for_test("exp_5b"),
+        get_outputs_for_test("exp_6a"),
+        get_outputs_for_test("exp_6b"),
+        get_outputs_for_test("exp_7a"),
+
+        # Treemix outputs - What I need? treeout.gz, vertices.gz and edges.gz for each condition
+        #expand(f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/{{filename}}_{{mode}}.{{ext}}",
+        #        mode = ["split","migration"],
+        #        ext = ["treeout.gz","vertices.gz","edges.gz"],
+        #        exp = [exp.replace("exp_","experiment_") if exp.startswith("exp") else exp for exp in EXPERIMENTS.keys()],
+        #        filename = [filename.split('plink_results/')[-1].split('_treemix.gz')[0] for filename in get_all_plink_outputs()])
+        get_all_treemix_outputs()
 
 # Step 1: Run the PLINK SCRIPT for each experiment 
 rule run_plink_test_1:
@@ -277,7 +291,7 @@ rule run_plink_test_6a:
         get_outputs_for_test("exp_6a")
     params:
         plink_script = f"{ROOT_DIR}/src/plink_script.sh"
-    threads: 3
+    threads: 5
     shell:
         """
         export SNAKEMAKE_CORES={threads}
@@ -289,7 +303,7 @@ rule run_plink_test_6b:
         get_outputs_for_test("exp_6b")
     params:
         plink_script = f"{ROOT_DIR}/src/plink_script.sh"
-    threads: 8
+    threads: 10
     shell:
         """
         export SNAKEMAKE_CORES={threads}
@@ -303,52 +317,39 @@ rule run_plink_test_7a:
     params:
         plink_script = f"{ROOT_DIR}/src/plink_script.sh"
     
-    threads: 1
+    threads: 3
     shell:
         """
         export SNAKEMAKE_CORES={threads}
         bash {params.plink_script} test_7a
         """
 
-# Step 2: Run the treemix scripts 
-#rule run_baseline_treemix:
-#    input:
-#        treemix_file = f"{EXPERIMENTS_DIR}/{{exp}}/plink_results/baseline_treemix.gz"
-#
-#    output:
-#        treeout = f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/baseline_{{mode}}.treeout.gz",
-#        vertices = f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/baseline_{{mode}}.vertices.gz",
-#        edges = f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/baseline_{{mode}}.edges.gz"
-#    
-#    params:
-#        m = lambda w: 0 if w.mode == "split" else 10,
-#        outstem = lambda w: f"{EXPERIMENTS_DIR}/{w.exp}/treemix_results/baseline_{w.mode}"
-#    
-#    shell:
-#        """
-#        mkdir -p $(dirname {params.outstem})
-#
-#        {TREEMIX} -i {input.treemix_file} \
-#                  -seed {SEED} \
-#                  -m {params.m} \
-#                  -k {SNP_SIZE} \
-#                  -root {ROOT} \
-#                  -o {params.outstem}  
-#        """
-#
-#rule run_treemix:
-#    input:
-#        # The syntax of using lambda functions in snakemake is that it gives the wildcard exp for that job and for that particular variant and mode.
-#        treemix_file = lambda w: get_plink_output(w.exp, w.variant) 
-#    
-#    output:
-#        treeout=f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/{{variant}}_{{mode}}.treeout.gz",
-#        vertices=f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/{{variant}}_{{mode}}.vertices.gz",
-#        edges=f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/{{variant}}_{{mode}}.edges.gz",
-#
-#    params:
-#        m = lambda w: get_treemix_params(w.exp, EXPERIMENTS[w.exp]['variants'][0],)
-#        outstem = lambda w:f"{EXPERIMENTS_DIR}/{w.exp}/treemix_results/{w.variant}_{w.mode}"
+
+# Step 2: Run treemix 
+
+rule run_treemix:
+    input:
+        get_all_plink_outputs()
+    
+    output:
+        treeout=f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/{{filename}}_{{mode}}.treeout.gz",
+        vertices=f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/{{filename}}_{{mode}}.vertices.gz",
+        edges=f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/{{filename}}_{{mode}}.edges.gz"
+    
+    threads: 3
+       
+    params:
+        m = lambda w: 0 if w.mode == 'split' else 10,
+        output_stem = lambda w: f"{EXPERIMENTS_DIR}/{w.exp}/treemix_results/{w.filename}_{w.mode}"
+    
+    shell:
+        """
+        ${TREEMIX} -i {input.treemix_file} \
+                    -m {params.m} \
+                    -seed {SEED} \
+                    -root {ROOT} \
+                    -o {params.output_stem}
+        """
 
 # Step 3: Find Differences
 
