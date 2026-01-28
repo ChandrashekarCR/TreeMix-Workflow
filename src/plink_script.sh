@@ -53,11 +53,19 @@ convert_plink_to_treemix() {
 
     # 4. Compress other files (with force overwrite or skip if exists)
     for file in "${PREFIX}".bed "${PREFIX}".bim "${PREFIX}".fam "${PREFIX}".frq.strat "${PREFIX}".hh "${PREFIX}".imiss "${PREFIX}".lmiss "${PREFIX}".log; do
-        if [ -f "$file" && ! -f "$file.gz" ]; then
+        if [ -f "$file" ] && [ ! -f "$file.gz" ]; then
             gzip "${file}"
         fi
     done
     echo "Process finished and saved in $OUT_DIR"
+}
+
+get_parallel_jobs () {
+    # Use the environment variable set by snakemake or set to the default as 1
+    local cores=${SNAKEMAKE_CORES:-1}
+
+    # For bas parallel jobs, use at most cores-1 or 1
+    echo $((cores > 1 ? cores - 1: 1))
 }
 
 # ==== LOCAL FUNCTIONS ====
@@ -111,18 +119,25 @@ test_3a() {
 
     # Define missingness thresholds to test
     GENO_THRESHOLDS=("0.05" "0.01" "0.00")
+    PARALLEL_JOBS=$(get_parallel_jobs)
+
+    echo "Running with up to $PARALLEL_JOBS parallel jobs."
 
     for GENO in "${GENO_THRESHOLDS[@]}"; do
-        
-        PREFIX="$OUT_DIR/3a_geno_missing_${GENO//./}"  # Removes the dot for cleaner filenames
-        
-        echo "Running PLINK filtering with genotype missingness threshold: $GENO"
-        "$PLINK" --bfile "$RAW_DATA" --geno "$GENO" --maf --make-bed --out "$PREFIX"
+        {
+            PREFIX="$OUT_DIR/3a_geno_missing_${GENO//./}"  # Removes the dot for cleaner filenames
 
-        convert_plink_to_treemix "$PREFIX" "$OUT_DIR" "$POP_LIST"
-        
+            echo "Running PLINK filtering with genotype missingness threshold: $GENO"
+            "$PLINK" --bfile "$RAW_DATA" --geno "$GENO" --maf --make-bed --out "$PREFIX"
+
+            convert_plink_to_treemix "$PREFIX" "$OUT_DIR" "$POP_LIST"
+        } &
+
+        # Limit the number of jobs
+        (($(jobs -r | wc -l) >= PARALLEL_JOBS)) && wait
     done
 
+    wait # Wait for all remaining jobs to complete
     echo "Process finished and saved in $OUT_DIR"
 }
 
@@ -173,6 +188,9 @@ test_4() {
     OUT_DIR="$RESULTS_DIR/experiment_4/plink_results"
     mkdir -p "$OUT_DIR"
 
+    PARALLEL_JOBS=$(get_parallel_jobs)
+    echo "Running with up to $PARALLEL_JOBS parallel jobs"
+
     # Function to process a hominin population (Denisovan or Vindija)
     process_hominin() {
         local POP_NAME=$1      # "Deni" or "Vindija"
@@ -193,10 +211,14 @@ test_4() {
     }
 
     # Run for both Denisovans and Vindija
-    process_hominin "Deni" 
-    process_hominin "Vindija" 
-    process_hominin "Both" 
+    for pop in "Deni" "Vindija" "Both"; do
+        process_hominin "$pop" &
 
+        # Limit the concurrent jobs
+        (($(jobs -r | wc -l) >= PARALLEL_JOBS )) && wait
+    done
+    
+    wait # Wait for all background things to finish
     echo "Experiment 4 completed. Results in: $OUT_DIR"
 }
 
@@ -222,39 +244,45 @@ test_5a() {
 
     # Define percentages for removal
     MAX_PER_POP=(3 5)
+    PARALLEL_JOBS=$(get_parallel_jobs)
+    echo "Running with up to $PARALLEL_JOBS parallel jobs."
 
     # Loop through each percentage
     for MAX in "${MAX_PER_POP[@]}"; do
-        
-        echo "Dropping $MAX of populations..."
-        CUR_POP_LIST="${OUT_DIR}/reduced_${MAX}.tsv"
+        {
+            echo "Dropping $MAX of populations..."
+            CUR_POP_LIST="${OUT_DIR}/reduced_${MAX}.tsv"
 
-        # Set population list depending on MAX
-        if [[ "$MAX" -eq 3 ]]; then
-            POPULATIONS="Maya,Surui,Hazara,Makrani,Hezhen,Tu,Balochi,Kalash,Naxi,Basque,Russian,Bedouin,Mozabite,Papuan,BantuKenya,BantuSouthAfrica"
-            #POPULATIONS="Mongola,NorthernHan,Japanese,Mozabite,Russian,BergamoItalian,Tuscan,Pima,Colombian,Mandenka,BantuKenya,BantuSouthAfrica"
-        elif [[ "$MAX" -eq 5 ]]; then
-            POPULATIONS="Maya,Surui,Hazara,Makrani,Hezhen,Tu,Balochi,Kalash,Naxi,Basque,Russian,Bedouin,Mozabite,Papuan,BantuKenya,BantuSouthAfrica"
-            #POPULATIONS="Basque,Biaka,Druze,French,Han,BergamoItalian,Japanese,Mandenka,Maya,Bougainville,Mongola,Mozabite,Palestinian,Pima,Russian,Sardinian,Sindhi,Burusho"
-        else
-            echo "No population list defined for MAX=$MAX"
-            exit 1
-        fi
+            # Set population list depending on MAX
+            if [[ "$MAX" -eq 3 ]]; then
+                POPULATIONS="Maya,Surui,Hazara,Makrani,Hezhen,Tu,Balochi,Kalash,Naxi,Basque,Russian,Bedouin,Mozabite,Papuan,BantuKenya,BantuSouthAfrica"
+                #POPULATIONS="Mongola,NorthernHan,Japanese,Mozabite,Russian,BergamoItalian,Tuscan,Pima,Colombian,Mandenka,BantuKenya,BantuSouthAfrica"
+            elif [[ "$MAX" -eq 5 ]]; then
+                POPULATIONS="Maya,Surui,Hazara,Makrani,Hezhen,Tu,Balochi,Kalash,Naxi,Basque,Russian,Bedouin,Mozabite,Papuan,BantuKenya,BantuSouthAfrica"
+                #POPULATIONS="Basque,Biaka,Druze,French,Han,BergamoItalian,Japanese,Mandenka,Maya,Bougainville,Mongola,Mozabite,Palestinian,Pima,Russian,Sardinian,Sindhi,Burusho"
+            else
+                echo "No population list defined for MAX=$MAX"
+                exit 1
+            fi
 
-        # Generate the list of populations to remove
-        python3 "$POPMANIPULATION" reduce_population_counts "$POP_LIST" "$CUR_POP_LIST" "$POPULATIONS" "$MAX"
+            # Generate the list of populations to remove
+            python3 "$POPMANIPULATION" reduce_population_counts "$POP_LIST" "$CUR_POP_LIST" "$POPULATIONS" "$MAX"
 
-        # Define prefix based on percentage
-        PREFIX_OUT="${OUT_DIR}/5a_filtered_${MAX}_uneven_ind"
+            # Define prefix based on percentage
+            PREFIX_OUT="${OUT_DIR}/5a_filtered_${MAX}_uneven_ind"
 
-        # Remove the selected populations and generate new PLINK files
-        $PLINK --bfile "$RAW_DATA" --keep "$CUR_POP_LIST" --maf --geno --make-bed --out "$PREFIX_OUT"
+            # Remove the selected populations and generate new PLINK files
+            $PLINK --bfile "$RAW_DATA" --keep "$CUR_POP_LIST" --maf --geno --make-bed --out "$PREFIX_OUT"
 
-        # Convert to TreeMix format
-        convert_plink_to_treemix "$PREFIX_OUT" "$OUT_DIR" "$CUR_POP_LIST"
-        
+            # Convert to TreeMix format
+            convert_plink_to_treemix "$PREFIX_OUT" "$OUT_DIR" "$CUR_POP_LIST"
+        } &
+
+        (($(jobs -r | wc -l) >= PARALLEL_JOBS)) && wait
+
     done
 
+    wait
     echo "Experiment 5a completed. Results in: $OUT_DIR"
 }
 
@@ -280,27 +308,34 @@ test_5b() {
     # Define different sample sizes to test
     SAMPLESIZES=(3 5)
 
+    PARALLEL_JOBS=$(get_parallel_jobs)
+    echo "Running with $PARALLEL_JOBS parallel jobs."
+
     for SAMPLESIZE in "${SAMPLESIZES[@]}";do
+        {
+            # Naming
+            CURR_POP_LIST="${OUT_DIR}/even_${SAMPLESIZE}ind.tsv"
+            RANDOMSTATE=$((45 + SAMPLESIZE))
+            PREFIX="$OUT_DIR/5b_filtered_${SAMPLESIZE}_even_ind"
 
-        # Naming
-        CURR_POP_LIST="${OUT_DIR}/even_${SAMPLESIZE}ind.tsv"
-        RANDOMSTATE=$((45 + SAMPLESIZE))
-        PREFIX="$OUT_DIR/5b_filtered_${SAMPLESIZE}_even_ind"
+            echo "Processing test case: $SAMPLESIZE individuals"
 
-        echo "Processing test case: $SAMPLESIZE individuals"
+            # Create new pop_list with reduced sample sizes
+            python3 "$POPMANIPULATION" generate_pop_lists "$POP_LIST" "$SAMPLESIZE" "$OUT_DIR" --num-populations all --random-state $RANDOMSTATE
 
-        # Create new pop_list with reduced sample sizes
-        python3 "$POPMANIPULATION" generate_pop_lists "$POP_LIST" "$SAMPLESIZE" "$OUT_DIR" --num-populations all --random-state $RANDOMSTATE
+            # Filter dataset for selected individuals
+            echo "Filtering dataset: Keeping manipulated populations with $SAMPLESIZE..."
+            $PLINK --bfile "$RAW_DATA" --keep "$CURR_POP_LIST" --geno --maf --make-bed --out "$PREFIX"
 
-        # Filter dataset for selected individuals
-        echo "Filtering dataset: Keeping manipulated populations with $SAMPLESIZE..."
-        $PLINK --bfile "$RAW_DATA" --keep "$CURR_POP_LIST" --geno --maf --make-bed --out "$PREFIX"
+            convert_plink_to_treemix "$PREFIX" "$OUT_DIR" "$CURR_POP_LIST"
 
-        convert_plink_to_treemix "$PREFIX" "$OUT_DIR" "$CURR_POP_LIST"
-    
+        } &
+
+        (($(jobs -r | wc -l) >= PARALLEL_JOBS)) && wait
 
     done
     
+    wait
     echo "Experiment 5b completed. Results in: $OUT_DIR"
 }
 
@@ -325,31 +360,39 @@ test_6a() {
     # Drop 14 and 20 populations respectively
     NUM_POPS=(14 20)
 
+    PARALLEL_JOBS=$(get_parallel_jobs)
+    echo "Running with $PARALLEL_JOBS parallel jobs."
+
     # Loop through each percentage
     for NUM in "${NUM_POPS[@]}"; do
+        {
+            PREFIX="$OUT_DIR/6a_drop_pops_${NUM}"
+            CUR_POP_LIST="${OUT_DIR}/remove_pops_${NUM}.tsv"
 
-        PREFIX="$OUT_DIR/6a_drop_pops_${NUM}"
-        CUR_POP_LIST="${OUT_DIR}/remove_pops_${NUM}.tsv"
+            # Set population list depending on MAX
+            if [[ "$NUM" -eq 14 ]]; then
+                  POPULATIONS=("Biaka" "Mbuti" "Mandenka" "Druze" "Sardinian" "Basque" "Orcadian" "Tuscan" "Makrani" "Balochi" "Burusho" "Karitiana" "Surui" "Pima")
+            elif [[ "$NUM" -eq 20 ]]; then
+                  POPULATIONS=("Biaka" "Mbuti" "Mandenka" "Druze" "Sardinian" "Basque" "Orcadian" "Tuscan" "Makrani" "Balochi" "Burusho" "Karitiana" "Surui" "Pima" "Adygei" "Kalash" "Pathan" "Sindhi" "Maya" "Papuan")
+            else
+                  echo "No population list defined for MAX=$MAX"
+                  exit 1
+            fi
 
-        # Set population list depending on MAX
-        if [[ "$NUM" -eq 14 ]]; then
-              POPULATIONS=("Biaka" "Mbuti" "Mandenka" "Druze" "Sardinian" "Basque" "Orcadian" "Tuscan" "Makrani" "Balochi" "Burusho" "Karitiana" "Surui" "Pima")
-        elif [[ "$NUM" -eq 20 ]]; then
-              POPULATIONS=("Biaka" "Mbuti" "Mandenka" "Druze" "Sardinian" "Basque" "Orcadian" "Tuscan" "Makrani" "Balochi" "Burusho" "Karitiana" "Surui" "Pima" "Adygei" "Kalash" "Pathan" "Sindhi" "Maya" "Papuan")
-        else
-              echo "No population list defined for MAX=$MAX"
-              exit 1
-        fi
+            python3 "$POPMANIPULATION" drop_specific_populations "$POP_LIST" "$CUR_POP_LIST" "${POPULATIONS[@]}"
 
-        python3 "$POPMANIPULATION" drop_specific_populations "$POP_LIST" "$CUR_POP_LIST" "${POPULATIONS[@]}"
+            $PLINK --bfile "$RAW_DATA" --remove "$CUR_POP_LIST" --geno --maf --make-bed --out "$PREFIX"
 
-        $PLINK --bfile "$RAW_DATA" --remove "$CUR_POP_LIST" --geno --maf --make-bed --out "$PREFIX"
+            echo "Dataset $PREFIX created."
 
-        echo "Dataset $PREFIX created."
+            convert_plink_to_treemix "$PREFIX" "$OUT_DIR" "$POP_LIST"
+        } &
 
-        convert_plink_to_treemix "$PREFIX" "$OUT_DIR" "$POP_LIST"
-        
+        (($(jobs -r | wc -l) >= PARALLEL_JOBS)) && wait
+
     done
+
+    wait # Wait for all jobs to finish
     echo "Experiment 6a completed. Results in: $OUT_DIR"
 }
 
@@ -373,27 +416,35 @@ test_6b() {
 
     # List of continents to remove
     continents=("Europe" "North Africa" "Middle East" "Asia" "America" "Oceania")
+
+    PARALLEL_JOBS=$(get_parallel_jobs)
+    echo "Running $PARALLEL_JOBS parallel jobs."
+
     # Loop through each continent
     for continent in "${continents[@]}"; do
-    
-        echo "Processing dataset without $continent..."
-        safe_continent=$(echo "$continent" | tr ' ' '_')
+        {
+            echo "Processing dataset without $continent..."
+            safe_continent=$(echo "$continent" | tr ' ' '_')
 
-        # Define input and output filenames
-        remove_file="${OUT_DIR}/remove_${safe_continent}.tsv"
-        PREFIX="$OUT_DIR/6b_dataset_no_${safe_continent}"
+            # Define input and output filenames
+            remove_file="${OUT_DIR}/remove_${safe_continent}.tsv"
+            PREFIX="$OUT_DIR/6b_dataset_no_${safe_continent}"
 
-        python3 "$POPMANIPULATION" drop_continents "$POP_LIST" "$continent" "$POP_MAPPING" "$OUT_DIR"
+            python3 "$POPMANIPULATION" drop_continents "$POP_LIST" "$continent" "$POP_MAPPING" "$OUT_DIR"
 
-        # Run PLINK command
-        $PLINK --bfile "$RAW_DATA" --remove "$remove_file" --geno --maf --make-bed --out "$PREFIX"
+            # Run PLINK command
+            $PLINK --bfile "$RAW_DATA" --remove "$remove_file" --geno --maf --make-bed --out "$PREFIX"
 
-        echo "Dataset $PREFIX created."
+            echo "Dataset $PREFIX created."
 
-        convert_plink_to_treemix "$PREFIX" "$OUT_DIR" "$POP_LIST"
-    
+            convert_plink_to_treemix "$PREFIX" "$OUT_DIR" "$POP_LIST"
+        } &
+
+        (($(jobs -r | wc -l) >= PARALLEL_JOBS)) && wait
 
     done
+    
+    wait 
     echo "All datasets processed. Results in: $OUT_DIR"
 }
 

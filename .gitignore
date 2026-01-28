@@ -23,6 +23,7 @@ experiments/
 
 # Ignore these miscellaneous files
 create_baseline_plots.sh
+*.log
 
 # Ignore plot files
 /plots

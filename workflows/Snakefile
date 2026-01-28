@@ -150,6 +150,22 @@ def get_all_plink_outputs():
                 outputs.append(write_out)
     return outputs
 
+def get_outputs_for_test(exp_name):
+    # Get all the ouput for a particular experiment
+    outputs = []
+    output = EXPERIMENTS[exp_name]
+    for key, value in output.items():
+        if key == 'plink_output':
+            write_out = f"{EXPERIMENTS_DIR}/{output['plink_output']}"
+            outputs.append(write_out)
+            break
+        elif key == 'variants':
+            variant_id = [i['name'] for i in output[key]]
+            for id in variant_id:
+                write_out = f"{EXPERIMENTS_DIR}/experiment_{exp_name.split("_")[-1]}/plink_results/{exp_name.split("_")[-1]}_{id}_treemix.gz"
+                outputs.append(write_out)
+    return outputs       
+
 def get_treemix_params(exp_name, variant, mode):
     params = {
         'seed':SEED,
@@ -172,24 +188,128 @@ def get_treemix_params(exp_name, variant, mode):
 # RUle all: Define the output files I need
 rule all:
     input:
-        get_all_plink_outputs()
+        #get_all_plink_outputs()
+        get_outputs_for_test("baseline"),
+        get_outputs_for_test("exp_3a"),
+        get_outputs_for_test("exp_3b"),
+        get_outputs_for_test("exp_4"),
+        #get_outputs_for_test("exp_5a"),
+        #get_outputs_for_test("exp_5b"),
+        #get_outputs_for_test("exp_6a"),
+        #get_outputs_for_test("exp_7a"),
 
-
-# Step 1: Run the PLINK SCRIPT tests
-rule run_plink:
+# Step 1: Run the PLINK SCRIPT for each experiment 
+rule run_plink_test_1:
     output:
-        treemix_file = f"{EXPERIMENTS_DIR}/{{exp_path}}/plink_results/{{filename}}_treemix.gz"
+        get_outputs_for_test("baseline")
 
     params:
-        test_name = lambda w: EXPERIMENTS[w.exp_path if w.exp_path == "baseline" else "exp_" + w.exp_path.replace("experiment_","")]['plink_test'],
         plink_script = f"{ROOT_DIR}/src/plink_script.sh"
-
+    
+    threads: 1
     shell:
         """
-        
-        bash {params.plink_script} {params.test_name}
-
+        export SNAKEMAKE_CORES={threads}
+        bash {params.plink_script} test_1
         """
+
+rule run_plink_test_3a:
+        output:
+            get_outputs_for_test("exp_3a")
+        params:
+            plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+        threads: 6
+        shell:
+            """
+            export SNAKEMAKE_CORES={threads}
+            bash {params.plink_script} test_3a
+            """
+
+rule run_plink_test_3b:
+        output:
+            get_outputs_for_test("exp_3b")
+        params:
+            plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+        threads: 1
+        shell:
+            """
+            export SNAKEMAKE_CORES={threads}
+            bash {params.plink_script} test_3b
+            """
+
+rule run_plink_test_4:
+    output:
+        get_outputs_for_test("exp_4")
+    params:
+        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+    threads: 5
+    shell:
+        """
+        export SNAKEMAKE_CORES={threads}
+        bash {params.plink_script} test_4
+        """
+
+rule run_plink_test_5a:
+    output:
+        get_outputs_for_test("exp_5a")
+    params:
+        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+    threads: 3
+    shell:
+        """
+        export SNAKEMAKE_CORES={threads}
+        bash {params.plink_script} test_5a
+        """
+
+rule run_plink_test_5b:
+    output:
+        get_outputs_for_test("exp_5b")
+    params:
+        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+    threads: 3
+    shell:
+        """
+        export SNAKEMAKE_CORES={threads}
+        bash {params.plink_script} test_5b
+        """
+rule run_plink_test_6a:
+    output:
+        get_outputs_for_test("exp_6a")
+    params:
+        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+    threads: 3
+    shell:
+        """
+        export SNAKEMAKE_CORES={threads}
+        bash {params.plink_script} test_6a
+        """
+
+rule run_plink_test_6b:
+    output:
+        get_outputs_for_test("exp_6b")
+    params:
+        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+    threads: 8
+    shell:
+        """
+        export SNAKEMAKE_CORES={threads}
+        bash {params.plink_script} test_6b
+        """
+
+rule run_plink_test_7a:
+    output:
+        get_outputs_for_test("exp_7a")
+
+    params:
+        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+    
+    threads: 1
+    shell:
+        """
+        export SNAKEMAKE_CORES={threads}
+        bash {params.plink_script} test_7a
+        """
+
 # Step 2: Run the treemix scripts 
 #rule run_baseline_treemix:
 #    input:

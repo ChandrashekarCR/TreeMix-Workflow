@@ -151,7 +151,25 @@ def get_all_plink_outputs():
                 outputs.append(write_out)
     return outputs
         
-print(get_all_plink_outputs())
+def get_outputs_for_test(exp_name):
+    # Get all the ouput for a particular experiment
+    outputs = []
+    output = EXPERIMENTS[exp_name]
+    for key, value in output.items():
+        if key == 'plink_output':
+            write_out = f"{EXPERIMENTS_DIR}/{output['plink_output']}"
+            outputs.append(write_out)
+            break
+        elif key == 'variants':
+            variant_id = [i['name'] for i in output[key]]
+            for id in variant_id:
+                write_out = f"{EXPERIMENTS_DIR}/experiment_{exp_name.split("_")[-1]}/plink_results/{exp_name.split("_")[-1]}_{id}_treemix.gz"
+                outputs.append(write_out)
+    return outputs       
+    
+
+print(get_outputs_for_test("exp_5b"))
+
 def get_treemix_params(exp_name, k=None, mode='split'):
     params = {
         'seed':SEED,
@@ -170,5 +188,4 @@ def get_treemix_params(exp_name, k=None, mode='split'):
 
     return params
 
-variant=lambda w: [v["name"] for v in EXPERIMENTS[w.exp]["variants"]]
 
