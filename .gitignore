@@ -19,6 +19,7 @@ experiments/
 .ruff_cache
 .vscode
 .DS_Store
+.snakemake
 
 # Ignore these miscellaneous files
 create_baseline_plots.sh

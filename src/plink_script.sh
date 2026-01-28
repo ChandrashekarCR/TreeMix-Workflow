@@ -46,11 +46,17 @@ convert_plink_to_treemix() {
     # 2. Converts the PLINK output to TreeMix format using a Python script.
     python3 "$PLINK2TREEMIX" "${PREFIX}.frq.strat" "${PREFIX}_treemix"
 
-    # 3. Compresses the resulting TreeMix file.
-    gzip "${PREFIX}_treemix"
-    # 4. Compresses all the other PLINK output files for saving space
-    gzip "${PREFIX}".*
+    # 3. Compresses the resulting TreeMix file (only if not already compressed)
+    if [ ! -f "${PREFIX}_treemix.gz" ]; then 
+        gzip "${PREFIX}_treemix"
+    fi
 
+    # 4. Compress other files (with force overwrite or skip if exists)
+    for file in "${PREFIX}".bed "${PREFIX}".bim "${PREFIX}".fam "${PREFIX}".frq.strat "${PREFIX}".hh "${PREFIX}".imiss "${PREFIX}".lmiss "${PREFIX}".log; do
+        if [ -f "$file" && ! -f "$file.gz" ]; then
+            gzip "${file}"
+        fi
+    done
     echo "Process finished and saved in $OUT_DIR"
 }
 
@@ -107,17 +113,16 @@ test_3a() {
     GENO_THRESHOLDS=("0.05" "0.01" "0.00")
 
     for GENO in "${GENO_THRESHOLDS[@]}"; do
-        (
-          PREFIX="$OUT_DIR/2_geno_missing_${GENO//./}"  # Removes the dot for cleaner filenames
+        
+        PREFIX="$OUT_DIR/3a_geno_missing_${GENO//./}"  # Removes the dot for cleaner filenames
+        
+        echo "Running PLINK filtering with genotype missingness threshold: $GENO"
+        "$PLINK" --bfile "$RAW_DATA" --geno "$GENO" --maf --make-bed --out "$PREFIX"
 
-          echo "Running PLINK filtering with genotype missingness threshold: $GENO"
-          "$PLINK" --bfile "$RAW_DATA" --geno "$GENO" --maf --make-bed --out "$PREFIX"
-
-          convert_plink_to_treemix "$PREFIX" "$OUT_DIR" "$POP_LIST"
-        ) &
+        convert_plink_to_treemix "$PREFIX" "$OUT_DIR" "$POP_LIST"
+        
     done
 
-    wait # Wait for all the background processes to finish
     echo "Process finished and saved in $OUT_DIR"
 }
 
@@ -138,7 +143,7 @@ test_3b() {
     echo "===== Running Experiment 3b: Minor Allele Frequency ===== "
     OUT_DIR="$RESULTS_DIR/experiment_3b/plink_results"
     mkdir -p "$OUT_DIR"
-    PREFIX="$OUT_DIR/3_minor_allele_freq_005"
+    PREFIX="$OUT_DIR/3b_minor_allele_freq_005"
 
     $PLINK --bfile "$RAW_DATA" --geno --maf 0.05 --make-bed --out "$PREFIX"
 
@@ -188,11 +193,10 @@ test_4() {
     }
 
     # Run for both Denisovans and Vindija
-    process_hominin "Deni" &
-    process_hominin "Vindija" &
-    process_hominin "Both" &
+    process_hominin "Deni" 
+    process_hominin "Vindija" 
+    process_hominin "Both" 
 
-    wait # Wait for all the processes to finish that are still running
     echo "Experiment 4 completed. Results in: $OUT_DIR"
 }
 
@@ -221,7 +225,7 @@ test_5a() {
 
     # Loop through each percentage
     for MAX in "${MAX_PER_POP[@]}"; do
-        (
+        
         echo "Dropping $MAX of populations..."
         CUR_POP_LIST="${OUT_DIR}/reduced_${MAX}.tsv"
 
@@ -241,17 +245,16 @@ test_5a() {
         python3 "$POPMANIPULATION" reduce_population_counts "$POP_LIST" "$CUR_POP_LIST" "$POPULATIONS" "$MAX"
 
         # Define prefix based on percentage
-        PREFIX_OUT="${OUT_DIR}/5a_filtered_${MAX}"
+        PREFIX_OUT="${OUT_DIR}/5a_filtered_${MAX}_uneven_ind"
 
         # Remove the selected populations and generate new PLINK files
         $PLINK --bfile "$RAW_DATA" --keep "$CUR_POP_LIST" --maf --geno --make-bed --out "$PREFIX_OUT"
 
         # Convert to TreeMix format
         convert_plink_to_treemix "$PREFIX_OUT" "$OUT_DIR" "$CUR_POP_LIST"
-        ) &
+        
     done
 
-    wait # Wait for all background processes to finish 
     echo "Experiment 5a completed. Results in: $OUT_DIR"
 }
 
@@ -275,14 +278,14 @@ test_5b() {
     mkdir -p "$OUT_DIR"
 
     # Define different sample sizes to test
-    SAMPLESIZES=(3 4 5 6)
+    SAMPLESIZES=(3 5)
 
     for SAMPLESIZE in "${SAMPLESIZES[@]}";do
-        (
+
         # Naming
         CURR_POP_LIST="${OUT_DIR}/even_${SAMPLESIZE}ind.tsv"
         RANDOMSTATE=$((45 + SAMPLESIZE))
-        PREFIX="$OUT_DIR/7_${SAMPLESIZE}_individuals_even"
+        PREFIX="$OUT_DIR/5b_filtered_${SAMPLESIZE}_even_ind"
 
         echo "Processing test case: $SAMPLESIZE individuals"
 
@@ -294,11 +297,10 @@ test_5b() {
         $PLINK --bfile "$RAW_DATA" --keep "$CURR_POP_LIST" --geno --maf --make-bed --out "$PREFIX"
 
         convert_plink_to_treemix "$PREFIX" "$OUT_DIR" "$CURR_POP_LIST"
-        ) &
+    
 
     done
     
-    wait # Wait for all the processes to finish running in the background
     echo "Experiment 5b completed. Results in: $OUT_DIR"
 }
 
@@ -325,8 +327,8 @@ test_6a() {
 
     # Loop through each percentage
     for NUM in "${NUM_POPS[@]}"; do
-        (
-        PREFIX="$OUT_DIR/4_drop_pops_${NUM}"
+
+        PREFIX="$OUT_DIR/6a_drop_pops_${NUM}"
         CUR_POP_LIST="${OUT_DIR}/remove_pops_${NUM}.tsv"
 
         # Set population list depending on MAX
@@ -346,9 +348,8 @@ test_6a() {
         echo "Dataset $PREFIX created."
 
         convert_plink_to_treemix "$PREFIX" "$OUT_DIR" "$POP_LIST"
-        ) &
+        
     done
-    wait # Wait for all the process to finish in th background
     echo "Experiment 6a completed. Results in: $OUT_DIR"
 }
 
@@ -374,7 +375,7 @@ test_6b() {
     continents=("Europe" "North Africa" "Middle East" "Asia" "America" "Oceania")
     # Loop through each continent
     for continent in "${continents[@]}"; do
-        (
+    
         echo "Processing dataset without $continent..."
         safe_continent=$(echo "$continent" | tr ' ' '_')
 
@@ -390,10 +391,9 @@ test_6b() {
         echo "Dataset $PREFIX created."
 
         convert_plink_to_treemix "$PREFIX" "$OUT_DIR" "$POP_LIST"
-        ) &
+    
 
     done
-    wait # Wait for all background processes to finish
     echo "All datasets processed. Results in: $OUT_DIR"
 }
 
@@ -676,10 +676,10 @@ test_8() {
     $PLINK --file "$HYBRID_DIR/all_hybrids" --make-bed --out "$HYBRID_DIR/all_hybrids"
     ##
     ### Step 4: Merge all hybrids with full dataset
-    $PLINK --bfile "$OUT_DIR/all" --bmerge "$HYBRID_DIR/all_hybrids" --make-bed --out "$OUT_DIR/8_artificial_5_merged_all"
+    $PLINK --bfile "$OUT_DIR/all" --bmerge "$HYBRID_DIR/all_hybrids" --make-bed --out "$OUT_DIR/8_artificial_5_merged_all_shuffled"
     ##
     ### Step 5 (optional): Run TreeMix input converter
-    convert_plink_to_treemix "$OUT_DIR/8_artificial_5_merged_all" "$OUT_DIR" "$LIST_DIR/population_list_with_hybrids.tsv"
+    convert_plink_to_treemix "$OUT_DIR/8_artificial_5_merged_all_shuffled" "$OUT_DIR" "$LIST_DIR/population_list_with_hybrids.tsv"
 
 
     echo "Experiment 8 completed. Results in: $OUT_DIR"
