@@ -405,6 +405,11 @@ rule run_treemix:
                     -seed {params.seed} \
                     -root {params.root} \
                     -o {params.output_stem} > {output.log} 2>&1
+
+        # Compress the output files
+        gzip {params.output_stem}.treeout
+        gzip {params.output_stem}.vertices
+        gzip {params.output_stem}.edges
         """
 
 # Step 3: Find Differences
