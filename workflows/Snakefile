@@ -219,141 +219,151 @@ rule all:
 
 # Step 1: Run the PLINK SCRIPT for each experiment 
 rule run_plink_test_1:
+    input:
+        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
     output:
         get_outputs_for_test("baseline")
-
-    params:
-        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
-    
+    #params:
+    #    plink_script = f"{ROOT_DIR}/src/plink_script.sh"
     threads: 1
     shell:
         """
         export SNAKEMAKE_CORES={threads}
-        bash {params.plink_script} test_1
+        bash {input.plink_script} test_1
         """
 
 rule run_plink_test_3a:
-        output:
-            get_outputs_for_test("exp_3a")
-        params:
-            plink_script = f"{ROOT_DIR}/src/plink_script.sh"
-        threads: 6
-        shell:
-            """
-            export SNAKEMAKE_CORES={threads}
-            bash {params.plink_script} test_3a
-            """
+    input:
+        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+    output:
+        get_outputs_for_test("exp_3a")
+    #params:
+    #    plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+    threads: 6
+    shell:
+        """
+        export SNAKEMAKE_CORES={threads}
+        bash {input.plink_script} test_3a
+        """
 
 rule run_plink_test_3b:
-        output:
-            get_outputs_for_test("exp_3b")
-        params:
-            plink_script = f"{ROOT_DIR}/src/plink_script.sh"
-        threads: 1
-        shell:
-            """
-            export SNAKEMAKE_CORES={threads}
-            bash {params.plink_script} test_3b
-            """
+    input:
+        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+    output:
+        get_outputs_for_test("exp_3b")
+    #params:
+    #    plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+    threads: 1
+    shell:
+        """
+        export SNAKEMAKE_CORES={threads}
+        bash {input.plink_script} test_3b
+        """
 
 rule run_plink_test_4:
+    input:
+        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
     output:
         get_outputs_for_test("exp_4")
-    params:
-        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+    #params:
+    #    plink_script = f"{ROOT_DIR}/src/plink_script.sh"
     threads: 5
     shell:
         """
         export SNAKEMAKE_CORES={threads}
-        bash {params.plink_script} test_4
+        bash {input.plink_script} test_4
         """
 
 rule run_plink_test_5a:
+    input:
+        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
     output:
         get_outputs_for_test("exp_5a")
-    params:
-        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+    #params:
+    #    plink_script = f"{ROOT_DIR}/src/plink_script.sh"
     threads: 3
     shell:
         """
         export SNAKEMAKE_CORES={threads}
-        bash {params.plink_script} test_5a
+        bash {input.plink_script} test_5a
         """
 
 rule run_plink_test_5b:
+    input:
+        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
     output:
         get_outputs_for_test("exp_5b")
-    params:
-        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+    #params:
+    #    plink_script = f"{ROOT_DIR}/src/plink_script.sh"
     threads: 3
     shell:
         """
         export SNAKEMAKE_CORES={threads}
-        bash {params.plink_script} test_5b
+        bash {input.plink_script} test_5b
         """
 rule run_plink_test_6a:
+    input:
+        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
     output:
         get_outputs_for_test("exp_6a")
-    params:
-        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+    #params:
+    #    plink_script = f"{ROOT_DIR}/src/plink_script.sh"
     threads: 5
     shell:
         """
         export SNAKEMAKE_CORES={threads}
-        bash {params.plink_script} test_6a
+        bash {input.plink_script} test_6a
         """
 
 rule run_plink_test_6b:
+    input:
+        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
     output:
         get_outputs_for_test("exp_6b")
-    params:
-        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+    #params:
+    #    plink_script = f"{ROOT_DIR}/src/plink_script.sh"
     threads: 10
     shell:
         """
         export SNAKEMAKE_CORES={threads}
-        bash {params.plink_script} test_6b
+        bash {input.plink_script} test_6b
         """
 
 rule run_plink_test_7a:
+    input:
+        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
     output:
         get_outputs_for_test("exp_7a")
-
-    params:
-        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
-    
+    #params:
+    #    plink_script = f"{ROOT_DIR}/src/plink_script.sh"
     threads: 3
     shell:
         """
         export SNAKEMAKE_CORES={threads}
-        bash {params.plink_script} test_7a
+        bash {input.plink_script} test_7a
         """
 rule run_plink_test_7ba:
+    input:
+        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
     output:
         get_outputs_for_test("exp_7ba")
-    
-    params:
-        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
-    
     threads: 6
     shell:
         """
         export SNAKEMAKE_CORES={threads}
-        bash {params.plink_script} test_7ba
+        bash {input.plink_script} test_7ba
         """
 
 rule run_plink_test_7bb:
+    input:
+        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
     output:
         get_outputs_for_test("exp_7bb")
-    
-    params:
-        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
-    
     threads: 6
     shell:
         """
         export SNAKEMAKE_CORES={threads}
-        bash {params.plink_script} test_7bb
+        bash {input.plink_script} test_7bb
         """
 
 # We do need to run this because this is not defined in the manuscript

@@ -14,7 +14,6 @@ Output files for each comparison:
 - {basename}_migration_edges.json: Migration edge details (if present)
 """
 
-import glob
 import re
 from pathlib import Path
 

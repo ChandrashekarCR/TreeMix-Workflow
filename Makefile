@@ -48,6 +48,10 @@ lint: ## Static checks (ruff)
 	@conda run -n $(CONDA_ENV_NAME) ruff check . || (echo '[lint] ruff failed' >&2; exit 1)
 	@echo "[lint] ok"
 
+lint-fix: ## Fix the all the code formats for python	
+	@conda run -n $(CONDA_ENV_NAME) ruff check . --fix  
+	@echo "[lint-fix] ok"
+
 plink:
 	@if [ ! -f bin/plink/plink ]; then \
 		echo "PLINK not found, downloading..."; \

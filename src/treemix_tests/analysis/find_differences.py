@@ -4,13 +4,10 @@ import json
 import os
 import argparse
 import sys
-from collections import Counter, defaultdict
 from io import StringIO
-from pathlib import Path
 from typing import Dict, List, Set, Tuple, Any, Optional
 
 import numpy as np
-import pandas as pd
 from dendropy import Tree, TaxonNamespace
 from dendropy.calculate.treecompare import symmetric_difference, euclidean_distance
 

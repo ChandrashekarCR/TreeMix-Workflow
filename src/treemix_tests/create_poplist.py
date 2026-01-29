@@ -1,5 +1,4 @@
 import pandas as pd
-import json
 
 
 # def create_poplist_from_HGDP(path:str, path2:str, fam:str, output_path:str):

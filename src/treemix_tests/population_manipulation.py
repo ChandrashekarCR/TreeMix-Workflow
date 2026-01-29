@@ -321,7 +321,7 @@ def generate_pop_lists( #CHECKED
                     raise ValueError("num_populations_to_reduce must be at least 1")
                 if num_populations_to_reduce > len(unique_populations):
                     raise ValueError(f"num_populations_to_reduce ({num_populations_to_reduce}) cannot be greater than the number of unique populations ({len(unique_populations)})")
-            except ValueError as e:
+            except ValueError:
                 raise ValueError(f"Invalid num_populations_to_reduce: {num_populations_to_reduce}. Must be 'all' or a positive integer.")
 
             # Randomly select populations that will be manipulated
