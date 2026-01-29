@@ -128,10 +128,10 @@ EXPERIMENTS = {
     },
     
     # Experiment 8: Artificial shuffled
-    "exp_8": {
-        "plink_test": "test_8",
-        "variants": [{"name": "artificial_5_merged_all_shuffled"}]
-    }
+    #"exp_8": {
+    #    "plink_test": "test_8",
+    #    "variants": [{"name": "artificial_5_merged_all_shuffled"}]
+    #}
 }
 
 
@@ -169,21 +169,23 @@ def get_outputs_for_test(exp_name):
 def get_all_treemix_outputs():
     outputs = []
     for exp_name, exp_config in EXPERIMENTS.items():
-        # Determine experiment directory name
         if exp_name == "baseline":
             exp_dir = "baseline"
             variant_names = ["baseline"]
-        elif (exp_name == "exp_2a") or (exp_name == "exp_2b"):
+            prefix = "baseline"
+        elif exp_name in ["exp_2a","exp_2b"]:
             continue
         else:
             exp_dir = f"experiment_{exp_name.split('_')[-1]}"
+            prefix = exp_name.split('_')[-1]
             variant_names = [v["name"] for v in exp_config["variants"]]
 
         for variant in variant_names:
+            full_variant = f"{prefix}_{variant}" if prefix != "baseline" else variant
             for mode in ["split", "migration"]:
                 for ext in ["treeout.gz", "vertices.gz", "edges.gz"]:
                     outputs.append(
-                        f"{EXPERIMENTS_DIR}/{exp_dir}/treemix_results/{variant}_{mode}.{ext}"
+                        f"{EXPERIMENTS_DIR}/{exp_dir}/treemix_results/{full_variant}_{mode}.{ext}"
                     )
     return outputs
 
@@ -203,6 +205,9 @@ rule all:
         get_outputs_for_test("exp_6a"),
         get_outputs_for_test("exp_6b"),
         get_outputs_for_test("exp_7a"),
+        get_outputs_for_test("exp_7ba"),
+        get_outputs_for_test("exp_7bb"),
+        #get_outputs_for_test("exp_8"),
 
         # Treemix outputs - What I need? treeout.gz, vertices.gz and edges.gz for each condition
         #expand(f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/{{filename}}_{{mode}}.{{ext}}",
@@ -323,32 +328,82 @@ rule run_plink_test_7a:
         export SNAKEMAKE_CORES={threads}
         bash {params.plink_script} test_7a
         """
+rule run_plink_test_7ba:
+    output:
+        get_outputs_for_test("exp_7ba")
+    
+    params:
+        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+    
+    threads: 6
+    shell:
+        """
+        export SNAKEMAKE_CORES={threads}
+        bash {params.plink_script} test_7ba
+        """
 
+rule run_plink_test_7bb:
+    output:
+        get_outputs_for_test("exp_7bb")
+    
+    params:
+        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+    
+    threads: 6
+    shell:
+        """
+        export SNAKEMAKE_CORES={threads}
+        bash {params.plink_script} test_7bb
+        """
+
+#rule run_plink_test_8:
+#    output:
+#        get_outputs_for_test("exp_8")
+#    
+#    params:
+#        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+#    
+#    threads: 6
+#    shell:
+#        """
+#        export SNAKEMAKE_CORES={threads}
+#        bash {params.plink_script} test_8
+#        """
 
 # Step 2: Run treemix 
 
 rule run_treemix:
     input:
-        get_all_plink_outputs()
+        treemix_file=f"{EXPERIMENTS_DIR}/{{exp}}/plink_results/{{filename}}_treemix.gz"
     
     output:
         treeout=f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/{{filename}}_{{mode}}.treeout.gz",
         vertices=f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/{{filename}}_{{mode}}.vertices.gz",
         edges=f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/{{filename}}_{{mode}}.edges.gz"
+        log=f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/{{filename}}_{{mode}}.log"
     
     threads: 3
        
     params:
         m = lambda w: 0 if w.mode == 'split' else 10,
-        output_stem = lambda w: f"{EXPERIMENTS_DIR}/{w.exp}/treemix_results/{w.filename}_{w.mode}"
+        k = SNP_SIZE,
+        seed = SEED,
+        root = ROOT,
+        output_stem = lambda w: f"{EXPERIMENTS_DIR}/{w.exp}/treemix_results/{w.filename}_{w.mode}",
+        results_dir = lambda w: f"{EXPERIMENTS_DIR}/{w.exp}/treemix_results"
     
     shell:
         """
-        ${TREEMIX} -i {input.treemix_file} \
+        # Create the results directory
+        mkdir -p {params.results_dir}
+
+
+        {TREEMIX} -i {input.treemix_file} \
                     -m {params.m} \
-                    -seed {SEED} \
-                    -root {ROOT} \
-                    -o {params.output_stem}
+                    -k {params.k} \
+                    -seed {params.seed} \
+                    -root {params.root} \
+                    -o {params.output_stem} > {output.log} 2>&1
         """
 
 # Step 3: Find Differences

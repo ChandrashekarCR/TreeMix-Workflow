@@ -620,7 +620,6 @@ test_7ba() {
 # 4. Merge all hybrids with full dataset
 # 5. Run TreeMix input converter
 
-
 test_7bb() {
     echo "===== Running Experiment 7bb: Artificial hybrid populations with five-mixtures ===== "
     OUT_DIR="$RESULTS_DIR/experiment_7bb/plink_results"
@@ -635,61 +634,99 @@ test_7bb() {
 
     mkdir -p "$HYBRID_DIR" "$LIST_DIR"
 
+    PARALLEL_JOBS=$(get_parallel_jobs)
+    echo "Running with up to $PARALLEL_JOBS parallel jobs."
+
     # Step 1: Prepare population .tsv lists and the .json file
     python3 "$POPMANIPULATION" write_json_structures "$OUT_DIR" "$NUM_HYBRID_POPS"
     STRUCTURE_JSON="${OUT_DIR}/${NUM_HYBRID_POPS}_structure.tsv"
 
     python3 "$POPMANIPULATION" prepare_groupwise_hybrid_lists "$POP_LIST" "$STRUCTURE_JSON" "$LIST_DIR"
 
-    # Create baseline dataset 
+    # Create baseline dataset first (sequential - needed for all subsequent steps)
+    echo "Creating baseline dataset..."
     $PLINK --bfile "$RAW_DATA" --geno --maf --make-bed --out "$OUT_DIR/all"
 
-    # Step 2: Create one big PED with all hybrids
-    true > "$FINAL_HYBRID_PED"  # Empty file
-
-    MAP_COPIED=0
-
+    # Step 2: Process all hybrid groups in parallel
+    echo "Processing hybrid groups in parallel..."
+    
+    # Initialize final hybrid file
+    true > "$FINAL_HYBRID_PED"
+    
+    # Create array to store TSV files
+    TSV_FILES=()
     for tsv in "$LIST_DIR"/*.tsv; do
         BASENAME=$(basename "$tsv" .tsv)
         # Skip the population list file
-        if [[ "$BASENAME" == "population_list_with_hybrids" ]]; then
-            continue
-        fi
-        echo "Processing hybrid group: $BASENAME"
-
-        # Extract relevant individuals and recode
-        $PLINK --bfile "$OUT_DIR/all" --keep "$tsv" --make-bed --out "$HYBRID_DIR/$BASENAME"
-        $PLINK --bfile "$HYBRID_DIR/$BASENAME" --recode --out "$HYBRID_DIR/$BASENAME"
-
-        # Run hybrid creation (produces $HYBRID_DIR/$BASENAME.ped)
-        python3 "$POPMANIPULATION" create_snpsplit_hybrids \
-           "$HYBRID_DIR/$BASENAME.ped" \
-           "$BASENAME" \
-           "$(echo "$BASENAME" | tr '-' ' ')" \
-           "$HYBRID_DIR"
-
-        # Append created hybrid .ped to final hybrid file
-        cat "$HYBRID_DIR/$BASENAME.ped" >> "$FINAL_HYBRID_PED"
-
-        # Copy map file once
-        if [[ $MAP_COPIED -eq 0 ]]; then
-            cp "$HYBRID_DIR/$BASENAME.map" "$FINAL_HYBRID_MAP"
-            MAP_COPIED=1
+        if [[ "$BASENAME" != "population_list_with_hybrids" ]]; then
+            TSV_FILES+=("$tsv")
         fi
     done
 
-    ### Step 3: Convert all hybrids to binary
+    # Process TSV files in parallel batches
+    MAP_COPIED=0
+    for tsv in "${TSV_FILES[@]}"; do
+        {
+            BASENAME=$(basename "$tsv" .tsv)
+            echo "Processing hybrid group: $BASENAME (PID=$$)"
+
+            # Extract relevant individuals and recode 
+            $PLINK --bfile "$OUT_DIR/all" --keep "$tsv" --make-bed --out "$HYBRID_DIR/$BASENAME"
+            $PLINK --bfile "$HYBRID_DIR/$BASENAME" --recode --out "$HYBRID_DIR/$BASENAME"
+
+            # Run hybrid creation (produces $HYBRID_DIR/$BASENAME.ped)
+            python3 "$POPMANIPULATION" create_snpsplit_hybrids \
+               "$HYBRID_DIR/$BASENAME.ped" \
+               "$BASENAME" \
+               "$(echo "$BASENAME" | tr '-' ' ')" \
+               "$HYBRID_DIR"
+
+            echo "Completed processing for $BASENAME at $(date)"
+        } &
+
+        # Limit concurrent jobs
+        if (($(jobs -r | wc -l) >= PARALLEL_JOBS)); then
+            wait -n  # Wait for any one job to complete
+        fi
+    done
+
+    # Wait for all hybrid processing to complete
+    wait
+    echo "All hybrid groups processed. Merging results..."
+
+    # Step 3: Sequentially combine all hybrid .ped files (must be sequential due to file I/O)
+    for tsv in "${TSV_FILES[@]}"; do
+        BASENAME=$(basename "$tsv" .tsv)
+        
+        # Append created hybrid .ped to final hybrid file
+        if [[ -f "$HYBRID_DIR/$BASENAME.ped" ]]; then
+            cat "$HYBRID_DIR/$BASENAME.ped" >> "$FINAL_HYBRID_PED"
+            
+            # Copy map file once
+            if [[ $MAP_COPIED -eq 0 ]]; then
+                cp "$HYBRID_DIR/$BASENAME.map" "$FINAL_HYBRID_MAP"
+                MAP_COPIED=1
+            fi
+        else
+            echo "Warning: $HYBRID_DIR/$BASENAME.ped not found!"
+        fi
+    done
+
+    # Step 4: Convert all hybrids to binary
+    echo "Converting hybrids to binary format..."
     $PLINK --file "$HYBRID_DIR/all_hybrids" --make-bed --out "$HYBRID_DIR/all_hybrids"
-    #
-    ## Step 4: Merge all hybrids with full dataset
+
+    # Step 5: Merge all hybrids with full dataset
+    echo "Merging hybrids with full dataset..."
     $PLINK --bfile "$OUT_DIR/all" --bmerge "$HYBRID_DIR/all_hybrids" --make-bed --out "$OUT_DIR/7bb_artificial_5_merged_all"
 
-    ### Step 5 (optional): Run TreeMix input converter
+    # Step 6: Run TreeMix input converter
+    echo "Converting to TreeMix format..."
     convert_plink_to_treemix "$OUT_DIR/7bb_artificial_5_merged_all" "$OUT_DIR" "$LIST_DIR/population_list_with_hybrids.tsv"
-
 
     echo "Experiment 7bb completed. Results in: $OUT_DIR"
 }
+
 
 # Experiment 12: Artificial hybrid populations with fifty-mixtures-shuffled:
 # ---------------------------------------------------
@@ -715,16 +752,17 @@ test_8() {
     OUT_DIR="$RESULTS_DIR/experiment_8/plink_results"
     mkdir -p "$OUT_DIR"
 
-
     PYTHON_SCRIPT="../scripts/artificial.py"
     HYBRID_DIR="$OUT_DIR/hybrids"
     LIST_DIR="$OUT_DIR/hybrid_lists"
     FINAL_HYBRID_PED="$HYBRID_DIR/all_hybrids.ped"
     FINAL_HYBRID_MAP="$HYBRID_DIR/all_hybrids.map"
-
     NUM_POPS_HYBRID=51
 
     mkdir -p "$HYBRID_DIR" "$LIST_DIR"
+
+    PARALLEL_JOBS=$(get_parallel_jobs)
+    echo "Running with up to $PARALLEL_JOBS parallel jobs."
 
     # Step 1: Prepare population .tsv lists and the .json file
     python3 "$POPMANIPULATION" write_json_structures "$OUT_DIR" "$NUM_POPS_HYBRID"
@@ -732,51 +770,78 @@ test_8() {
     python3 "$PYTHON_SCRIPT" prepare --poplist "$POP_LIST" --structure "$STRUCTURE_JSON" --outdir "$LIST_DIR"
 
     # Create baseline dataset 
+    echo "Creating baseline dataset..."
     $PLINK --bfile "$RAW_DATA" --geno --maf --make-bed --out "$OUT_DIR/all"
     
-    # Step 2: Create one big PED with all hybrids
-    true > "$FINAL_HYBRID_PED"  # Empty file
+    # Step 2: Process hybrid groups in parallel
+    echo "Processing hybrid groups in parallel..."
+    true > "$FINAL_HYBRID_PED"
 
-    MAP_COPIED=0
-
+    # Create array to store TSV files
+    TSV_FILES=()
     for tsv in "$LIST_DIR"/*.tsv; do
         BASENAME=$(basename "$tsv" .tsv)
-        # Skip the population list file
-        if [[ "$BASENAME" == "population_list_with_hybrids" ]]; then
-            continue
-        fi
-        echo "Processing hybrid group: $BASENAME"
-
-        # Extract relevant individuals and recode
-        $PLINK --bfile "$OUT_DIR/all" --keep "$tsv" --geno --maf --make-bed --out "$HYBRID_DIR/$BASENAME"
-        $PLINK --bfile "$HYBRID_DIR/$BASENAME" --recode --out "$HYBRID_DIR/$BASENAME"
-
-        # Run hybrid creation (produces $HYBRID_DIR/$BASENAME.ped)
-        python3 "$PYTHON_SCRIPT" create \
-          --ped "$HYBRID_DIR/$BASENAME.ped" \
-          --hybrid_label "$BASENAME" \
-          --pops "$(echo "$BASENAME" | tr '-' ' ')" \
-          --outdir "$HYBRID_DIR"
-
-        # Append created hybrid .ped to final hybrid file
-        cat "$HYBRID_DIR/$BASENAME.ped" >> "$FINAL_HYBRID_PED"
-
-        # Copy map file once
-        if [[ $MAP_COPIED -eq 0 ]]; then
-            cp "$HYBRID_DIR/$BASENAME.map" "$FINAL_HYBRID_MAP"
-            MAP_COPIED=1
+        if [[ "$BASENAME" != "population_list_with_hybrids" ]]; then
+            TSV_FILES+=("$tsv")
         fi
     done
 
-    ### Step 3: Convert all hybrids to binary
-    $PLINK --file "$HYBRID_DIR/all_hybrids" --make-bed --out "$HYBRID_DIR/all_hybrids"
-    ##
-    ### Step 4: Merge all hybrids with full dataset
-    $PLINK --bfile "$OUT_DIR/all" --bmerge "$HYBRID_DIR/all_hybrids" --make-bed --out "$OUT_DIR/8_artificial_5_merged_all_shuffled"
-    ##
-    ### Step 5 (optional): Run TreeMix input converter
-    convert_plink_to_treemix "$OUT_DIR/8_artificial_5_merged_all_shuffled" "$OUT_DIR" "$LIST_DIR/population_list_with_hybrids.tsv"
+    MAP_COPIED=0
+    for tsv in "${TSV_FILES[@]}"; do
+        {
+            BASENAME=$(basename "$tsv" .tsv)
+            echo "Processing hybrid group: $BASENAME (PID=$$)"
 
+            # Extract relevant individuals and recode
+            $PLINK --bfile "$OUT_DIR/all" --keep "$tsv" --geno --maf --make-bed --out "$HYBRID_DIR/$BASENAME"
+            $PLINK --bfile "$HYBRID_DIR/$BASENAME" --recode --out "$HYBRID_DIR/$BASENAME"
+
+            # Run hybrid creation
+            python3 "$PYTHON_SCRIPT" create \
+              --ped "$HYBRID_DIR/$BASENAME.ped" \
+              --hybrid_label "$BASENAME" \
+              --pops "$(echo "$BASENAME" | tr '-' ' ')" \
+              --outdir "$HYBRID_DIR"
+
+            echo "Completed processing for $BASENAME at $(date)"
+        } &
+
+        if (($(jobs -r | wc -l) >= PARALLEL_JOBS)); then
+            wait -n
+        fi
+    done
+
+    # Wait for all hybrid processing to complete
+    wait
+    echo "All hybrid groups processed. Merging results..."
+
+    # Step 3: Sequentially combine all hybrid .ped files
+    for tsv in "${TSV_FILES[@]}"; do
+        BASENAME=$(basename "$tsv" .tsv)
+        
+        if [[ -f "$HYBRID_DIR/$BASENAME.ped" ]]; then
+            cat "$HYBRID_DIR/$BASENAME.ped" >> "$FINAL_HYBRID_PED"
+            
+            if [[ $MAP_COPIED -eq 0 ]]; then
+                cp "$HYBRID_DIR/$BASENAME.map" "$FINAL_HYBRID_MAP"
+                MAP_COPIED=1
+            fi
+        else
+            echo "Warning: $HYBRID_DIR/$BASENAME.ped not found!"
+        fi
+    done
+
+    # Step 4: Convert all hybrids to binary
+    echo "Converting hybrids to binary format..."
+    $PLINK --file "$HYBRID_DIR/all_hybrids" --make-bed --out "$HYBRID_DIR/all_hybrids"
+
+    # Step 5: Merge all hybrids with full dataset
+    echo "Merging hybrids with full dataset..."
+    $PLINK --bfile "$OUT_DIR/all" --bmerge "$HYBRID_DIR/all_hybrids" --make-bed --out "$OUT_DIR/8_artificial_5_merged_all_shuffled"
+
+    # Step 6: Run TreeMix input converter
+    echo "Converting to TreeMix format..."
+    convert_plink_to_treemix "$OUT_DIR/8_artificial_5_merged_all_shuffled" "$OUT_DIR" "$LIST_DIR/population_list_with_hybrids.tsv"
 
     echo "Experiment 8 completed. Results in: $OUT_DIR"
 }
