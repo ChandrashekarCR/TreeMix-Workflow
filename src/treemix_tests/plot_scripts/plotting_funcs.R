@@ -18,7 +18,7 @@ get_region_colors <- function() {
   return(list(
     "Subsaharan Africa" = "#E41A1C",    # Red
     "North Africa" = "#FF7F00",         # Orange  
-    "Europe" = "#4a62af",               # Blue
+    "Europe" = "#08d624",               # Blue
     "Oceania" = "#984EA3",              # Purple
     "America" = "#F781BF",              # Pink
     "Asia" = "#377EB8",                 # Light Blue

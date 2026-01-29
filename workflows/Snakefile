@@ -356,6 +356,7 @@ rule run_plink_test_7bb:
         bash {params.plink_script} test_7bb
         """
 
+# We do need to run this because this is not defined in the manuscript
 #rule run_plink_test_8:
 #    output:
 #        get_outputs_for_test("exp_8")
@@ -379,7 +380,7 @@ rule run_treemix:
     output:
         treeout=f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/{{filename}}_{{mode}}.treeout.gz",
         vertices=f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/{{filename}}_{{mode}}.vertices.gz",
-        edges=f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/{{filename}}_{{mode}}.edges.gz"
+        edges=f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/{{filename}}_{{mode}}.edges.gz",
         log=f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/{{filename}}_{{mode}}.log"
     
     threads: 3
