@@ -172,7 +172,6 @@ def get_all_treemix_outputs():
                     )
     return outputs
 
-print(get_all_treemix_outputs())
 
 def get_outputs_for_test(exp_name):
     # Get all the ouput for a particular experiment
@@ -191,26 +190,22 @@ def get_outputs_for_test(exp_name):
     return outputs       
     
 
+def get_outputs_for_comparison():
+    # Get all the outputs for the experiment
+    outputs = []
+    for exp_name, exp_config in EXPERIMENTS.items():
+        if exp_name not in ['baseline','exp_2a','exp_2b']: # We do not want these experiments as a part of our comparison results.
+            exp_dir = f"experiment_{exp_name.split("_")[-1]}"
+            variant_names = [v['name'] for v in exp_config['variants']]
 
-#print([exp.replace("exp_","experiment_") if exp.startswith("exp") else exp for exp in EXPERIMENTS.keys()])
-
-
-def get_treemix_params(exp_name, k=None, mode='split'):
-    params = {
-        'seed':SEED,
-        'k':SNP_SIZE,
-        'm': 0 if mode == 'split' else 10,
-        'root': ROOT
-    }
+            for variant in variant_names:
+                for mode in ["split","migration"]:
+                    for ext in ["txt","json"]:
+                        outputs.append(
+                            f"{EXPERIMENTS_DIR}/{exp_dir}/comparison_results/{variant}_{mode}.{ext}"
+                        )
     
-    if k is not None:
-        variant = EXPERIMENTS[exp_name]['variants']
-        print([var["k"] for var in variant])
+    return outputs
+            
 
-        # Override if variant specific parameters
-        if k in [var['k'] for var in variant]:
-            params["k"] = k
-
-    return params
-
-
+print(get_outputs_for_test("exp_3a"))

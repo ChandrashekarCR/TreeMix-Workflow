@@ -384,17 +384,17 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog=f"{os.path.basename(sys.argv[0])}",
                                      usage="python3 find_differences.py -i <baseline_tree_path> -c <comparison_tree_path>," \
                                      "-o <output_directory> -b <basename>",description="A program to compare the experiments tree generated to the baseline trees.")
-    parser.add_argument('-i',dest='--input_file',help='Enter the path of the baseline treemix output file.')
-    parser.add_argument('-c',dest='--comparison_tree',help='Enter the path of the tree you wich to compare.')
-    parser.add_argument('-o',dest='--output_dir',help='Enter the output directory to store the results.')
-    parser.add_argument('-b',dest='--basename',help='Enter the basename of the output file.')
+    parser.add_argument('-i',dest='input_file',help='Enter the path of the baseline treemix output file.')
+    parser.add_argument('-c',dest='comparison_tree',help='Enter the path of the tree you wich to compare.')
+    parser.add_argument('-o',dest='output_dir',help='Enter the output directory to store the results.')
+    parser.add_argument('-b',dest='basename',help='Enter the basename of the output file.')
     args = parser.parse_args()
 
 
     main(
-        baseline_path= args.input_file,#"/home/inf-21-2024/projects/treemix_project/plots/appendix/m_test/baseline_m_1_output.treeout.gz",
-        tree_path= args.comparison_tree,#"/home/inf-21-2024/projects/treemix_project/plots/appendix/m_test/baseline_m_6_output.treeout.gz",
-        output_dir= args.output_dir,#"comparision_results",
-        basename=args.basename,#"test_comparison",
+        baseline_path= args.input_file,                 #"/home/inf-21-2024/projects/treemix_project/plots/appendix/m_test/baseline_m_1_output.treeout.gz",
+        tree_path= args.comparison_tree,                #"/home/inf-21-2024/projects/treemix_project/plots/appendix/m_test/baseline_m_6_output.treeout.gz",
+        output_dir= args.output_dir,                    #"comparision_results",
+        basename=args.basename,                         #"test_comparison",
         pruned=True
     )
