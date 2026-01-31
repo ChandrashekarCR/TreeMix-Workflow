@@ -445,5 +445,4 @@ rule compare_trees:
             -b {params.basename}
         """
 
-
 # Step 4: Plot the tree

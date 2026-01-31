@@ -25,6 +25,7 @@ source(file.path(script_dir, "plotting_funcs.R"))
 #' Plot TreeMix tree with legend
 #' @param stem Prefix of TreeMix output files (without extensions)
 #' @param output_file Output filename (PDF or PNG)
+#' @param changed_pops_path Path to the file with changed populations (defaul is null)
 #' @param use_colors Whether to color populations by region (default: TRUE)
 #' @param add_legend Whether to add region legend (default: TRUE)
 #' @param legend_pos Legend position: "topright", "topleft", "bottomright", "bottomleft" (default: "topright")
@@ -35,9 +36,12 @@ source(file.path(script_dir, "plotting_funcs.R"))
 #' @param lwd Line width (default: 2)
 #' @param displacement Text displacement from tips (default: 0.005)
 #' @param font Font style: 1=normal, 2=bold, 3=italic, 4=bold italic (default: 2)
+#' @param create_both Whether to create both PDF and PNG versions (default: FALSE)
+#' @param png_dpi DPI resolution for PNG files (default: 600)
 #' @return Invisible list with vertices and edges data
 plot_treemix_with_legend <- function(stem, 
                                      output_file = NULL,
+                                     changed_pops_path = NULL,
                                      use_colors = TRUE,
                                      add_legend = TRUE,
                                      legend_pos = "topright",
@@ -47,7 +51,9 @@ plot_treemix_with_legend <- function(stem,
                                      cex = 0.6,
                                      lwd = 2,
                                      displacement = 0.005,
-                                     font = 2) {
+                                     font = 2,
+                                     create_both = FALSE,
+                                     png_dpi = 600) {
   
   # Validate inputs
   if (!file.exists(paste0(stem, ".vertices.gz"))) {
@@ -56,49 +62,79 @@ plot_treemix_with_legend <- function(stem,
   
   # Determine output file if not provided
   if (is.null(output_file)) {
-    output_file <- paste0(stem, "_plot.pdf")
+    output_file <- paste0(stem, "_plot")
   }
   
-  # Determine file type from extension
-  file_ext <- tolower(tools::file_ext(output_file))
-  
-  # Open graphics device
-  if (file_ext == "pdf") {
-    pdf(output_file, width = width, height = height)
-  } else if (file_ext %in% c("png", "")) {
-    if (file_ext == "") {
-      output_file <- paste0(output_file, ".png")
+  # Function to create a single plot
+  create_plot <- function(file_path, file_type) {
+    # Open graphics device
+    if (file_type == "pdf") {
+      pdf(file_path, width = width, height = height)
+    } else if (file_type == "png") {
+      # Fixed PNG creation with proper DPI scaling
+      png(file_path, width = width, height = height, units = "in", res = png_dpi)
     }
-    png(output_file, width = width * 150, height = height * 150, res = 150)
-  } else {
-    stop("Unsupported file format. Use .pdf or .png")
+    
+    # Plot the tree
+    result <- plot_tree(
+      stem = stem,
+      cex = cex,
+      disp = displacement,
+      plus = 0.01,
+      arrow = 0.05,
+      scale = TRUE,
+      ybar = 0.1,
+      mbar = TRUE,
+      plotmig = plot_migrations,
+      plotnames = TRUE,
+      changed_pops_path = changed_pops_path,
+      xmin = 0,
+      lwd = lwd,
+      font = font,
+      use_region_colors = use_colors,
+      add_legend = add_legend,
+      legend_pos = legend_pos
+    )
+    
+    dev.off()
+    return(result)
   }
   
-  # Plot the tree
-  result <- plot_tree(
-    stem = stem,
-    cex = cex,
-    disp = displacement,
-    plus = 0.01,
-    arrow = 0.05,
-    scale = TRUE,
-    #flip = c(76, 2372, 1504),
-    ybar = 0.1,
-    mbar = TRUE,
-    plotmig = plot_migrations,
-    plotnames = TRUE,
-    changed_pops_path = '/home/inf-21-2024/projects/treemix_project/comparision_results/test_comparison_differences.txt',
-    xmin = 0,
-    lwd = lwd,
-    font = font,
-    use_region_colors = use_colors,
-    add_legend = add_legend,
-    legend_pos = legend_pos
-  )
+  # Create plots based on options
+  if (create_both) {
+    # Remove extension from output_file if present
+    base_name <- tools::file_path_sans_ext(output_file)
+    
+    # Create both formats
+    pdf_file <- paste0(base_name, ".pdf")
+    png_file <- paste0(base_name, ".png")
+    
+    cat(sprintf("Creating PDF: %s\n", pdf_file))
+    result <- create_plot(pdf_file, "pdf")
+    
+    cat(sprintf("Creating PNG: %s (%d DPI)\n", png_file, png_dpi))
+    create_plot(png_file, "png")
+    
+    cat("Both plots saved successfully!\n")
+    
+  } else {
+    # Single format (existing behavior)
+    file_ext <- tolower(tools::file_ext(output_file))
+    
+    if (file_ext == "pdf") {
+      result <- create_plot(output_file, "pdf")
+    } else if (file_ext %in% c("png", "")) {
+      if (file_ext == "") {
+        output_file <- paste0(output_file, ".png")
+      }
+      result <- create_plot(output_file, "png")
+    } else {
+      stop("Unsupported file format. Use .pdf or .png")
+    }
+    
+    cat(sprintf("Plot saved to: %s\n", output_file))
+  }
   
-  dev.off()
-  
-  cat(sprintf("Plot saved to: %s\n", output_file))
   return(invisible(result))
 }
 
@@ -119,27 +155,35 @@ if (!interactive()) {
     cat("  --no-mig         Don't show migration edges\n")
     cat("  --legend-pos <pos>  Legend position: topright, topleft, bottomright, bottomleft\n")
     cat("  --png            Save as PNG instead of PDF\n")
+    cat("  --both           Create both PDF and PNG versions\n")
+    cat("  --dpi <n>        PNG resolution in DPI (default: 600)\n")
+    cat("  --changed-pops <file>  Path to file with changed population names (one per line)\n")
+    cat("  --output_dir <dir> Output directo for the plots (defail is the current directory)")
     cat("  --width <n>      Plot width in inches (default: 10)\n")
     cat("  --height <n>     Plot height in inches (default: 8)\n")
     cat("  --cex <n>        Text size multiplier (default: 0.8)\n\n")
     cat("Examples:\n")
-    cat("  # Basic plot with legend\n")
-    cat("  Rscript plot_with_legend.R baseline_m_2_output\n\n")
-    cat("  # Custom output file and legend position\n")
-    cat("  Rscript plot_with_legend.R baseline_m_2_output my_plot.pdf --legend-pos topleft\n\n")
-    cat("  # Large PNG without legend\n")
-    cat("  Rscript plot_with_legend.R baseline_m_2_output --png --no-legend --width 14 --height 10\n\n")
+    cat("Rscript plot_with_legend.R experiments/baseline/treemix_results/baseline_split \
+          --output-dir plots/baseline/ \
+          --both \
+          --dpi 600 \
+          --changed-pops comparison_results/differences.txt \
+          --legend-pos topleft")
     quit(status = 0)
   }
   
   # Parse arguments
   stem <- args[1]
   output_file <- NULL
+  changed_pops_path <- NULL 
+  output_dir <- NULL
   use_colors <- TRUE
   add_legend <- TRUE
   legend_pos <- "topright"
   plot_migrations <- TRUE
   use_png <- FALSE
+  create_both <- FALSE
+  png_dpi <- 600
   width <- 10
   height <- 8
   cex <- 0.8
@@ -159,6 +203,14 @@ if (!interactive()) {
       legend_pos <- args[i]
     } else if (arg == "--png") {
       use_png <- TRUE
+    } else if (arg == "--both") {
+      create_both <- TRUE
+    } else if (arg == "--dpi") {
+      i <- i + 1
+      png_dpi <- as.numeric(args[i])
+    } else if (arg == "--changed-pops") {
+      i <- i + 1
+      changed_pops_path <- args[i]
     } else if (arg == "--width") {
       i <- i + 1
       width <- as.numeric(args[i])
@@ -179,29 +231,36 @@ if (!interactive()) {
   if (is.null(output_file)) {
     base_name <- basename(stem)
     output_file <- paste0(base_name, "_plot")
-    if (use_png) {
+    if (use_png && !create_both) {
       output_file <- paste0(output_file, ".png")
-    } else {
+    } else if (!create_both) {
       output_file <- paste0(output_file, ".pdf")
     }
   }
   
   # Create the plot
   cat(sprintf("Plotting TreeMix results from: %s\n", stem))
-  cat(sprintf("Output file: %s\n", output_file))
+  if (create_both) {
+    cat("Creating both PDF and PNG versions\n")
+  } else {
+    cat(sprintf("Output file: %s\n", output_file))
+  }
   cat(sprintf("Settings: colors=%s, legend=%s, migrations=%s\n", 
               use_colors, add_legend, plot_migrations))
   
   plot_treemix_with_legend(
     stem = stem,
     output_file = output_file,
+    changed_pops_path = changed_pops_path,
     use_colors = use_colors,
     add_legend = add_legend,
     legend_pos = legend_pos,
     plot_migrations = plot_migrations,
     width = width,
     height = height,
-    cex = cex
+    cex = cex,
+    create_both = create_both,
+    png_dpi = png_dpi
   )
   
   cat("Done!\n")

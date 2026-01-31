@@ -16,13 +16,14 @@ library(jsonlite)
 #' @return Named list of colors for each region
 get_region_colors <- function() {
   return(list(
-    "Subsaharan Africa" = "#E41A1C",    # Red
-    "North Africa" = "#FF7F00",         # Orange  
-    "Europe" = "#08d624",               # Blue
-    "Oceania" = "#984EA3",              # Purple
-    "America" = "#F781BF",              # Pink
-    "Asia" = "#377EB8",                 # Light Blue
-    "Middle East" = "#A65628"           # Brown
+    "Sub-Saharan Africa" = "#E41A1C",    # Red
+    "North Africa" = "#FF7F00",          # Orange  
+    "Europe" = "#377EB8",                # Blue
+    "Oceania" = "#984EA3",               # Purple
+    "Native America" = "#F781BF",        # Pink
+    "East Asia" = "#4DAF4A",             # Green
+    "Central South Asia" = "#FFFF33",    # Yellow
+    "Middle East" = "#A65628"            # Brown
   ))
 }
 
@@ -338,7 +339,12 @@ plot_tree_internal <- function(d, e, o = NA, cex = 1, disp = 0.005, plus = 0.005
   axis(1)
   
   # Get max migration weight for color scaling
-  mw <- max(e[e[,5] == "MIG", 4])
+  mig_edges <- e[e[,5] == "MIG", 4]
+  if (length(mig_edges) > 0) {
+    mw <- max(mig_edges)
+  } else {
+    mw <- 0
+  }
   mcols <- rev(heat.colors(150))
   
   # Plot edges
