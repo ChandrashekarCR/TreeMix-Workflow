@@ -88,6 +88,7 @@ plot_treemix_with_legend <- function(stem,
       plotmig = plot_migrations,
       plotnames = TRUE,
       changed_pops_path = changed_pops_path,
+      mark_changes = !is.null(changed_pops_path),
       xmin = 0,
       lwd = lwd,
       font = font,
@@ -158,7 +159,7 @@ if (!interactive()) {
     cat("  --both           Create both PDF and PNG versions\n")
     cat("  --dpi <n>        PNG resolution in DPI (default: 600)\n")
     cat("  --changed-pops <file>  Path to file with changed population names (one per line)\n")
-    cat("  --output_dir <dir> Output directo for the plots (defail is the current directory)")
+    cat("  --output-dir <dir>   Output directory for the plots (default is the current directory)\n")
     cat("  --width <n>      Plot width in inches (default: 10)\n")
     cat("  --height <n>     Plot height in inches (default: 8)\n")
     cat("  --cex <n>        Text size multiplier (default: 0.8)\n\n")
@@ -208,9 +209,12 @@ if (!interactive()) {
     } else if (arg == "--dpi") {
       i <- i + 1
       png_dpi <- as.numeric(args[i])
-    } else if (arg == "--changed-pops") {
+    } else if (arg == "--changed-pops" || arg == "--changed-pop") {
       i <- i + 1
       changed_pops_path <- args[i]
+    } else if (arg == "--output-dir" || arg == "--output_dir") {
+      i <- i + 1
+      output_dir <- args[i]
     } else if (arg == "--width") {
       i <- i + 1
       width <- as.numeric(args[i])
@@ -227,6 +231,14 @@ if (!interactive()) {
     i <- i + 1
   }
   
+  # Create output directory if specified
+  if (!is.null(output_dir)) {
+    if (!dir.exists(output_dir)) {
+      dir.create(output_dir, recursive = TRUE)
+      cat(sprintf("Created output directory: %s\n", output_dir))
+    }
+  }
+  
   # Set default output file if not provided
   if (is.null(output_file)) {
     base_name <- basename(stem)
@@ -236,6 +248,11 @@ if (!interactive()) {
     } else if (!create_both) {
       output_file <- paste0(output_file, ".pdf")
     }
+  }
+  
+  # Add output directory to file path if specified
+  if (!is.null(output_dir)) {
+    output_file <- file.path(output_dir, basename(output_file))
   }
   
   # Create the plot

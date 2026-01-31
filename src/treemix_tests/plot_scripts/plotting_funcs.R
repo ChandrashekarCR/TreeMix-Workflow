@@ -558,6 +558,11 @@ plot_tree <- function(stem, o = NA, cex = 1, disp = 0.003, plus = 0.01, flip = v
   d <- set_x_coords(d, e)
   d <- set_mig_coords(d, e)
   
+  # Auto-enable mark_changes if changed_pops_path is provided
+  if (!is.null(changed_pops_path) && !mark_changes) {
+    mark_changes <- TRUE
+  }
+  
   # Plot
   plot_tree_internal(d, e, o = o, cex = cex, xmin = xmin, disp = disp, plus = plus, 
                      arrow = arrow, ybar = ybar, mbar = mbar, mse = m, scale = scale, 
