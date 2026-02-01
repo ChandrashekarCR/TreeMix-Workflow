@@ -105,7 +105,7 @@ EXPERIMENTS = {
         "plink_test": "test_6b",
         "variants": [
             {"name": f"dataset_no_{continent.replace(' ', '_')}"} 
-            for continent in ["Europe", "North_Africa", "Middle_East", "Asia", "America", "Oceania"]
+            for continent in ["Europe","North_Africa", "Sub-Saharan_Africa", "Middle_East", "East_Asia", "Central_South_Asia", "Native_America", "Oceania"]
         ]
     },
     
