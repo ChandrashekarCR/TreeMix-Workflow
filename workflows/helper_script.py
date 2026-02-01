@@ -206,6 +206,22 @@ def get_outputs_for_comparison():
                         )
     
     return outputs
-            
 
-print(get_outputs_for_test("exp_3a"))
+def get_all_plots():
+    outputs = []
+    for exp_name, exp_config in EXPERIMENTS.items():
+        if exp_name not in ['baseline','exp_2a','exp_2b']: # We do not want these experiments as a part of our comparison results.
+            exp_dir = f"experiment_{exp_name.split("_")[-1]}"
+            exp_number = exp_name.split("_")[-1]
+            variant_names = [f"{exp_number}_{v['name']}" for v in exp_config['variants']]
+
+            for variant in variant_names:
+                for mode in ["split","migration"]:
+                    for ext in ["pdf","png"]:
+                        outputs.append(
+                            f"{EXPERIMENTS_DIR}/{exp_dir}/plots/{variant}_{mode}.{ext}"
+                        )
+    return outputs
+
+
+print(get_all_plots())

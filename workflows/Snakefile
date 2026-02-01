@@ -170,8 +170,12 @@ def get_all_treemix_outputs():
     outputs = []
     for exp_name, exp_config in EXPERIMENTS.items():
         if exp_name == "baseline":
-            exp_dir = "baseline"
-            variant_names = ["baseline"]
+            # Special handling for baseline
+            for mode in ["split", "migration"]:
+                for ext in ["treeout.gz", "vertices.gz", "edges.gz", "log"]:
+                    outputs.append(
+                        f"{EXPERIMENTS_DIR}/baseline/treemix_results/baseline_{mode}.{ext}"
+                    )
         elif exp_name in ["exp_2a","exp_2b"]:
             continue
         else:
@@ -179,12 +183,12 @@ def get_all_treemix_outputs():
             exp_number = exp_name.split('_')[-1]
             variant_names = [f"{exp_number}_{v['name']}" for v in exp_config["variants"]]
 
-        for variant in variant_names:
-            for mode in ["split", "migration"]:
-                for ext in ["treeout.gz", "vertices.gz", "edges.gz", "log"]:
-                    outputs.append(
-                        f"{EXPERIMENTS_DIR}/{exp_dir}/treemix_results/{variant}_{mode}.{ext}"
-                    )
+            for variant in variant_names:
+                for mode in ["split", "migration"]:
+                    for ext in ["treeout.gz", "vertices.gz", "edges.gz", "log"]:
+                        outputs.append(
+                            f"{EXPERIMENTS_DIR}/{exp_dir}/treemix_results/{variant}_{mode}.{ext}"
+                        )
     return outputs
 
 
@@ -202,6 +206,22 @@ def get_outputs_for_comparison():
                     outputs.append(f"{EXPERIMENTS_DIR}/{exp_dir}/comparison_results/{variant}_{mode}_differences.txt")
                     outputs.append(f"{EXPERIMENTS_DIR}/{exp_dir}/comparison_results/{variant}_{mode}_tree_comparison_results.json")
     
+    return outputs
+
+def get_all_plots():
+    outputs = []
+    for exp_name, exp_config in EXPERIMENTS.items():
+        if exp_name not in ['baseline','exp_2a','exp_2b']: # We do not want these experiments as a part of our comparison results.
+            exp_dir = f"experiment_{exp_name.split("_")[-1]}"
+            exp_number = exp_name.split("_")[-1]
+            variant_names = [f"{exp_number}_{v['name']}" for v in exp_config['variants']]
+
+            for variant in variant_names:
+                for mode in ["split","migration"]:
+                    for ext in ["pdf","png"]:
+                        outputs.append(
+                            f"{EXPERIMENTS_DIR}/{exp_dir}/plots/{variant}_{mode}_plot.{ext}"
+                        )
     return outputs
 
 # ============ Rules ==================
@@ -227,7 +247,10 @@ rule all:
         get_all_treemix_outputs(),
 
         # What I want are the comparsion files
-        get_outputs_for_comparison()
+        get_outputs_for_comparison(),
+
+        # What I want are the plots
+        get_all_plots()
 
 # Step 1: Run the PLINK SCRIPT for each experiment 
 rule run_plink_test_1:
@@ -383,7 +406,45 @@ rule run_plink_test_7bb:
 
 # Step 2: Run treemix 
 
-rule run_treemix:
+# Step 2: Run treemix - Split into separate rules for baseline and experiments
+
+# Special rule for baseline (no exp_prefix/filename pattern)
+rule run_treemix_baseline:
+    input:
+        treemix_file=f"{EXPERIMENTS_DIR}/baseline/plink_results/baseline_treemix.gz"
+    
+    output:
+        treeout=f"{EXPERIMENTS_DIR}/baseline/treemix_results/baseline_{{mode}}.treeout.gz",
+        vertices=f"{EXPERIMENTS_DIR}/baseline/treemix_results/baseline_{{mode}}.vertices.gz",
+        edges=f"{EXPERIMENTS_DIR}/baseline/treemix_results/baseline_{{mode}}.edges.gz",
+        log=f"{EXPERIMENTS_DIR}/baseline/treemix_results/baseline_{{mode}}.log"
+    
+    threads: 1
+       
+    params:
+        m = lambda w: 0 if w.mode == 'split' else 10,
+        k = SNP_SIZE,
+        seed = SEED,
+        root = ROOT,
+        output_stem = lambda w: f"{EXPERIMENTS_DIR}/baseline/treemix_results/baseline_{w.mode}",
+        results_dir = f"{EXPERIMENTS_DIR}/baseline/treemix_results"
+    
+    shell:
+        """
+        # Create the results directory
+        mkdir -p {params.results_dir}
+
+        # Run TreeMix (automatically creates compressed .gz output files)
+        {TREEMIX} -i {input.treemix_file} \
+                    -m {params.m} \
+                    -k {params.k} \
+                    -seed {params.seed} \
+                    -root {params.root} \
+                    -o {params.output_stem} > {output.log} 2>&1
+        """
+
+# Regular rule for experiments (with exp_prefix/filename pattern)
+rule run_treemix_experiments:
     input:
         treemix_file=f"{EXPERIMENTS_DIR}/{{exp}}/plink_results/{{exp_prefix}}_{{filename}}_treemix.gz"
     
@@ -394,6 +455,8 @@ rule run_treemix:
         log=f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/{{exp_prefix}}_{{filename}}_{{mode}}.log"
     
     threads: 1
+    wildcard_constraints:
+        exp="experiment_.*"  # Only match experiment directories, not baseline
        
     params:
         m = lambda w: 0 if w.mode == 'split' else 10,
@@ -416,6 +479,8 @@ rule run_treemix:
                     -root {params.root} \
                     -o {params.output_stem} > {output.log} 2>&1
         """
+
+# Remove the old run_treemix rule and replace with the above two rules
 
 # Step 3: Find Differences
 rule compare_trees:
@@ -446,3 +511,29 @@ rule compare_trees:
         """
 
 # Step 4: Plot the tree
+# Step 4: Plot the tree
+rule plot_tree:
+    input:
+        # Input of the trees and the comparison text file
+        test_tree_treeout = f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/{{filename}}_{{mode}}.treeout.gz",
+        comparison_file = f"{EXPERIMENTS_DIR}/{{exp}}/comparison_results/{{filename}}_{{mode}}_differences.txt"
+    output:
+        pdf_file = f"{EXPERIMENTS_DIR}/{{exp}}/plots/{{filename}}_{{mode}}_plot.pdf",
+        png_file = f"{EXPERIMENTS_DIR}/{{exp}}/plots/{{filename}}_{{mode}}_plot.png"
+
+    params:
+        plot_script = f"{ROOT_DIR}/src/treemix_tests/plot_scripts/plot_with_legend.R",
+        test_tree_stem = lambda w: f"{EXPERIMENTS_DIR}/{w.exp}/treemix_results/{w.filename}_{w.mode}",
+        output_dir = lambda w: f"{EXPERIMENTS_DIR}/{w.exp}/plots"
+    
+    shell:
+        """
+        mkdir -p {params.output_dir}
+        
+        Rscript {params.plot_script} \
+            {params.test_tree_stem} \
+            --both \
+            --dpi 600 \
+            --changed-pops {input.comparison_file} \
+            --output-dir {params.output_dir}
+        """

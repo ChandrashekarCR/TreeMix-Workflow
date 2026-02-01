@@ -18,12 +18,12 @@ get_region_colors <- function() {
   return(list(
     "Sub-Saharan Africa" = "#E41A1C",    # Red
     "North Africa" = "#FF7F00",          # Orange  
-    "Europe" = "#377EB8",                # Blue
-    "Oceania" = "#984EA3",               # Purple
-    "Native America" = "#F781BF",        # Pink
-    "East Asia" = "#4DAF4A",             # Green
-    "Central South Asia" = "#FFFF33",    # Yellow
-    "Middle East" = "#A65628"            # Brown
+    "Europe" = "#94b34cb9",              # Olive green
+    "Oceania" = "#2eb91c",               # Green
+    "Native America" = "#85330e",        # Brown
+    "East Asia" = "#a40aca",             # Purple
+    "Central South Asia" = "#410553",    # Dark Purple
+    "Middle East" = "#1cd8cf"            # Cyan
   ))
 }
 
