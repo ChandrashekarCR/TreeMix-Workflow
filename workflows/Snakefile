@@ -104,8 +104,8 @@ EXPERIMENTS = {
     "exp_6b": {
         "plink_test": "test_6b",
         "variants": [
-            {"name": f"dataset_no_{continent.replace(' ', '_')}"} 
-            for continent in ["Europe","North_Africa", "Sub-Saharan_Africa", "Middle_East", "East_Asia", "Central_South_Asia", "Native_America", "Oceania"]
+            {"name": f"dataset_no_{continent.replace(' ', '_').replace('-', '_')}"} 
+            for continent in ["Europe","North_Africa", "Sub_Saharan_Africa", "Middle_East", "East_Asia", "Central_South_Asia", "Native_America", "Oceania"]
         ]
     },
     
@@ -125,13 +125,7 @@ EXPERIMENTS = {
     "exp_7bb": {
         "plink_test": "test_7bb",
         "variants": [{"name": "artificial_5_merged_all"}]
-    },
-    
-    # Experiment 8: Artificial shuffled
-    #"exp_8": {
-    #    "plink_test": "test_8",
-    #    "variants": [{"name": "artificial_5_merged_all_shuffled"}]
-    #}
+    }
 }
 
 
@@ -210,6 +204,15 @@ def get_outputs_for_comparison():
 
 def get_all_plots():
     outputs = []
+
+    # Add baseline plots
+    for mode in ["split","migration"]:
+        for ext in ["pdf","png"]:
+            outputs.append(
+                f"{EXPERIMENTS_DIR}/baseline/plots/baseline_{mode}_plot.{ext}"
+            )
+
+
     for exp_name, exp_config in EXPERIMENTS.items():
         if exp_name not in ['baseline','exp_2a','exp_2b']: # We do not want these experiments as a part of our comparison results.
             exp_dir = f"experiment_{exp_name.split("_")[-1]}"
@@ -404,10 +407,7 @@ rule run_plink_test_7bb:
 
 
 
-# Step 2: Run treemix 
-
 # Step 2: Run treemix - Split into separate rules for baseline and experiments
-
 # Special rule for baseline (no exp_prefix/filename pattern)
 rule run_treemix_baseline:
     input:
@@ -456,7 +456,10 @@ rule run_treemix_experiments:
     
     threads: 1
     wildcard_constraints:
-        exp="experiment_.*"  # Only match experiment directories, not baseline
+        exp="experiment_.*",  # Only match experiment directories, not baseline
+        exp_prefix=r"[0-9a-zA-Z]+",  # Allow alphanumeric characters
+        filename=r"[0-9a-zA-Z_-]+",  # Allow alphanumeric, underscore, and hyphen
+        mode="(split|migration)"  # Only allow split or migration modes
        
     params:
         m = lambda w: 0 if w.mode == 'split' else 10,
@@ -493,6 +496,12 @@ rule compare_trees:
         # Will be experiment name followed by either differences.txt or tree_comparison_results.json
         txt_file = f"{EXPERIMENTS_DIR}/{{exp}}/comparison_results/{{exp_prefix}}_{{filename}}_{{mode}}_differences.txt",
         json_file = f"{EXPERIMENTS_DIR}/{{exp}}/comparison_results/{{exp_prefix}}_{{filename}}_{{mode}}_tree_comparison_results.json"
+    
+    wildcard_constraints:
+        exp="experiment_.*",
+        exp_prefix=r"[0-9a-zA-Z]+",
+        filename=r"[0-9a-zA-Z_-]+",
+        mode="(split|migration)"
     params:
         script = f"{ROOT_DIR}/src/treemix_tests/analysis/find_differences.py",
         output_dir = lambda w: f"{EXPERIMENTS_DIR}/{w.exp}/comparison_results",
@@ -510,7 +519,30 @@ rule compare_trees:
             -b {params.basename}
         """
 
-# Step 4: Plot the tree
+# Step 4: Plot baseline tree
+rule plot_baseline_tree:
+    input:
+        baseline_tree = f"{EXPERIMENTS_DIR}/baseline/treemix_results/baseline_{{mode}}.treeout.gz"
+    output:
+        pdf_file = f"{EXPERIMENTS_DIR}/baseline/plots/baseline_{{mode}}_plot.pdf",
+        png_file = f"{EXPERIMENTS_DIR}/baseline/plots/baseline_{{mode}}_plot.png"
+    params:
+        plot_script = f"{ROOT_DIR}/src/treemix_tests/plot_scripts/plot_with_legend.R",
+        baseline_tree = lambda w: f"{EXPERIMENTS_DIR}/baseline/treemix_results/baseline_{w.mode}",
+        output_dir = f"{EXPERIMENTS_DIR}/baseline/plots",
+        output_base = lambda w: f"baseline_{w.mode}"
+    shell:
+        """
+        mkdir -p {params.output_dir}
+
+        Rscript {params.plot_script} \
+                {params.baseline_tree} \
+                {params.output_base} \
+                --both \
+                --dpi 600 \
+                --output_dir {params.output_dir}
+        """
+
 # Step 4: Plot the tree
 rule plot_tree:
     input:
@@ -520,6 +552,11 @@ rule plot_tree:
     output:
         pdf_file = f"{EXPERIMENTS_DIR}/{{exp}}/plots/{{filename}}_{{mode}}_plot.pdf",
         png_file = f"{EXPERIMENTS_DIR}/{{exp}}/plots/{{filename}}_{{mode}}_plot.png"
+
+    wildcard_constraints:
+        exp="experiment_.*",
+        filename=r"[0-9a-zA-Z_-]+",
+        mode="(split|migration)"
 
     params:
         plot_script = f"{ROOT_DIR}/src/treemix_tests/plot_scripts/plot_with_legend.R",
