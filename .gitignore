@@ -24,6 +24,7 @@ experiments/
 # Ignore these miscellaneous files
 create_baseline_plots.sh
 *.log
+.github_password
 
 # Ignore plot files
 /plots
