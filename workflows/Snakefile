@@ -105,7 +105,7 @@ EXPERIMENTS = {
         "plink_test": "test_6b",
         "variants": [
             {"name": f"dataset_no_{continent.replace(' ', '_')}"} 
-            for continent in ["Europe","North_Africa", "Sub-Saharan_Africa", "Middle_East", "East_Asia", "Central_South_Asia", "Native_America", "Oceania"]
+            for continent in ["Europe","North_Africa", "Middle_East", "East_Asia", "Central_South_Asia", "Native_America", "Oceania"]
         ]
     },
     
@@ -454,7 +454,7 @@ rule run_treemix_experiments:
         edges=f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/{{exp_prefix}}_{{filename}}_{{mode}}.edges.gz",
         log=f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/{{exp_prefix}}_{{filename}}_{{mode}}.log"
     
-    threads: 1
+    threads: 12
     wildcard_constraints:
         exp="experiment_.*",  # Only match experiment directories, not baseline
         exp_prefix=r"[0-9a-zA-Z]+",  # Allow alphanumeric characters

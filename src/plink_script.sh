@@ -418,7 +418,7 @@ test_6b() {
     mkdir -p "$OUT_DIR"
 
     # List of continents to remove
-    continents=("Europe" "North Africa" "Sub-Saharan Africa" "Middle East" "East Asia" "Central South Asia" "Native America" "Oceania")
+    continents=("Europe" "North Africa" "Middle East" "East Asia" "Central South Asia" "Native America" "Oceania")
 
     PARALLEL_JOBS=$(get_parallel_jobs)
     echo "Running $PARALLEL_JOBS parallel jobs."
