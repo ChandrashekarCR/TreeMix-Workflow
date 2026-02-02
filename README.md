@@ -95,7 +95,7 @@ Rscript src/treemix_tests/plot_scripts/plot_with_legend.R \
 
 ## Experiments Overview
 
-### Baseline (test_1)
+### Baseline 
 - **Purpose**: Reference TreeMix analysis
 - **Parameters**: Standard PLINK filtering, TreeMix with 0 migrations (split) and 10 migrations
 - **Output**: Reference trees for all comparisons
@@ -104,7 +104,7 @@ Rscript src/treemix_tests/plot_scripts/plot_with_legend.R \
 - **Experiment 3a**: Tests genotype missingness thresholds (0.00, 0.01, 0.05)
 - **Experiment 3b**: Tests minor allele frequency threshold (0.05)
 
-### Archaic Genomes (test_4)
+### Archaic Genomes 
 - **Purpose**: Assess impact of archaic hominin genomes
 - **Variants**: Denisovan, Vindija Neanderthal, Both combined
 
