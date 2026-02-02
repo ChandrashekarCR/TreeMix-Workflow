@@ -104,8 +104,8 @@ EXPERIMENTS = {
     "exp_6b": {
         "plink_test": "test_6b",
         "variants": [
-            {"name": f"dataset_no_{continent.replace(' ', '_').replace('-', '_')}"} 
-            for continent in ["Europe","North_Africa", "Sub_Saharan_Africa", "Middle_East", "East_Asia", "Central_South_Asia", "Native_America", "Oceania"]
+            {"name": f"dataset_no_{continent.replace(' ', '_')}"} 
+            for continent in ["Europe","North_Africa", "Sub-Saharan_Africa", "Middle_East", "East_Asia", "Central_South_Asia", "Native_America", "Oceania"]
         ]
     },
     
@@ -458,7 +458,7 @@ rule run_treemix_experiments:
     wildcard_constraints:
         exp="experiment_.*",  # Only match experiment directories, not baseline
         exp_prefix=r"[0-9a-zA-Z]+",  # Allow alphanumeric characters
-        filename=r"[0-9a-zA-Z_-]+",  # Allow alphanumeric, underscore, and hyphen
+        filename=r"[0-9a-zA-Z_\-]+",  # Allow alphanumeric, underscore, and hyphen
         mode="(split|migration)"  # Only allow split or migration modes
        
     params:
@@ -500,7 +500,7 @@ rule compare_trees:
     wildcard_constraints:
         exp="experiment_.*",
         exp_prefix=r"[0-9a-zA-Z]+",
-        filename=r"[0-9a-zA-Z_-]+",
+        filename=r"[0-9a-zA-Z_\-]+",
         mode="(split|migration)"
     params:
         script = f"{ROOT_DIR}/src/treemix_tests/analysis/find_differences.py",
@@ -555,7 +555,7 @@ rule plot_tree:
 
     wildcard_constraints:
         exp="experiment_.*",
-        filename=r"[0-9a-zA-Z_-]+",
+        filename=r"[0-9a-zA-Z_\-]+",
         mode="(split|migration)"
 
     params:
