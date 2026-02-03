@@ -209,7 +209,7 @@ def get_all_plots():
     for mode in ["split","migration"]:
         for ext in ["pdf","png"]:
             outputs.append(
-                f"{EXPERIMENTS_DIR}/baseline/plots/baseline_{mode}_plot.{ext}"
+                f"{EXPERIMENTS_DIR}/baseline/plots/baseline_{mode}.{ext}"
             )
 
 
@@ -277,7 +277,7 @@ rule run_plink_test_3a:
         get_outputs_for_test("exp_3a")
     #params:
     #    plink_script = f"{ROOT_DIR}/src/plink_script.sh"
-    threads: 6
+    threads: 2
     shell:
         """
         export SNAKEMAKE_CORES={threads}
@@ -305,7 +305,7 @@ rule run_plink_test_4:
         get_outputs_for_test("exp_4")
     #params:
     #    plink_script = f"{ROOT_DIR}/src/plink_script.sh"
-    threads: 5
+    threads: 2
     shell:
         """
         export SNAKEMAKE_CORES={threads}
@@ -346,7 +346,7 @@ rule run_plink_test_6a:
         get_outputs_for_test("exp_6a")
     #params:
     #    plink_script = f"{ROOT_DIR}/src/plink_script.sh"
-    threads: 5
+    threads: 2
     shell:
         """
         export SNAKEMAKE_CORES={threads}
@@ -360,7 +360,7 @@ rule run_plink_test_6b:
         get_outputs_for_test("exp_6b")
     #params:
     #    plink_script = f"{ROOT_DIR}/src/plink_script.sh"
-    threads: 10
+    threads: 4
     shell:
         """
         export SNAKEMAKE_CORES={threads}
@@ -385,7 +385,7 @@ rule run_plink_test_7ba:
         plink_script = f"{ROOT_DIR}/src/plink_script.sh"
     output:
         get_outputs_for_test("exp_7ba")
-    threads: 6
+    threads: 3
     shell:
         """
         export SNAKEMAKE_CORES={threads}
@@ -397,7 +397,7 @@ rule run_plink_test_7bb:
         plink_script = f"{ROOT_DIR}/src/plink_script.sh"
     output:
         get_outputs_for_test("exp_7bb")
-    threads: 6
+    threads: 3
     shell:
         """
         export SNAKEMAKE_CORES={threads}
@@ -454,7 +454,7 @@ rule run_treemix_experiments:
         edges=f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/{{exp_prefix}}_{{filename}}_{{mode}}.edges.gz",
         log=f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/{{exp_prefix}}_{{filename}}_{{mode}}.log"
     
-    threads: 12
+    threads: 1
     wildcard_constraints:
         exp="experiment_.*",  # Only match experiment directories, not baseline
         exp_prefix=r"[0-9a-zA-Z]+",  # Allow alphanumeric characters
@@ -524,8 +524,8 @@ rule plot_baseline_tree:
     input:
         baseline_tree = f"{EXPERIMENTS_DIR}/baseline/treemix_results/baseline_{{mode}}.treeout.gz"
     output:
-        pdf_file = f"{EXPERIMENTS_DIR}/baseline/plots/baseline_{{mode}}_plot.pdf",
-        png_file = f"{EXPERIMENTS_DIR}/baseline/plots/baseline_{{mode}}_plot.png"
+        pdf_file = f"{EXPERIMENTS_DIR}/baseline/plots/baseline_{{mode}}.pdf",
+        png_file = f"{EXPERIMENTS_DIR}/baseline/plots/baseline_{{mode}}.png"
     params:
         plot_script = f"{ROOT_DIR}/src/treemix_tests/plot_scripts/plot_with_legend.R",
         baseline_tree = lambda w: f"{EXPERIMENTS_DIR}/baseline/treemix_results/baseline_{w.mode}",
@@ -543,7 +543,6 @@ rule plot_baseline_tree:
                 --output_dir {params.output_dir}
         """
 
-# Step 4: Plot the tree
 rule plot_tree:
     input:
         # Input of the trees and the comparison text file
