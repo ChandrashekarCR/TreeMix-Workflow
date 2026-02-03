@@ -2,7 +2,7 @@
 
 # ==========================
 # PLINK Batch Processing Script
-# Author: Marlene Ganz & Chandrashekar CR
+# Author: Marlene Ganz, Chandrashekar CR, Sreejith Remanan Pushpa Latha, Eran Elhaik
 # Date: 26/01/26
 # Description: This script runs different PLINK tests in a modular way.
 # Usage: 
