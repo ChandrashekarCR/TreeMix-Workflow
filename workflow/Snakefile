@@ -4,128 +4,119 @@ from pathlib import Path
 import pandas as pd
 
 ROOT_DIR = Path.cwd()
-EXPERIMENTS_DIR=f"{ROOT_DIR}/experiments"
-TREEMIX=f"{os.environ['HOME']}/miniconda3/envs/treemix_env/bin/treemix"
-SEED=1
-SNP_SIZE=1000
-SPLIT_ONLY=1
-MIGRATION_ENABLED=10
-ROOT="San"
+EXPERIMENTS_DIR = f"{ROOT_DIR}/experiments"
+TREEMIX = f"{os.environ['HOME']}/miniconda3/envs/treemix_env/bin/treemix"
+SEED = 1
+SNP_SIZE = 1000
+SPLIT_ONLY = 1
+MIGRATION_ENABLED = 10
+ROOT = "San"
 
 
 EXPERIMENTS = {
     # Experiment 1: Baseline (Split only and migration enabled)
     "baseline": {
         "plink_test": "test_1",
-        "plink_output":"baseline/plink_results/baseline_treemix.gz",
-        "variants": []
+        "plink_output": "baseline/plink_results/baseline_treemix.gz",
+        "variants": [],
     },
-
     # Experiment 2a: Treemix Parameters - SNP Block Size
     "exp_2a": {
-        "plink_test":"test_1", # Use the baseline PLINK file
-        "plink_output":"baseline/plink_results/baseline_treemix.gz",
-        "variants":[
-            {"name":"k200","k":200},
-            {"name":"k500","k":500},
-            {"name":"k1000","k":1000},
-            {"name":"k1500","k":1500},
-            {"name":"k2000","k":2000},
-            {"name":"k10000","k":10000}
-        ]
+        "plink_test": "test_1",  # Use the baseline PLINK file
+        "plink_output": "baseline/plink_results/baseline_treemix.gz",
+        "variants": [
+            {"name": "k200", "k": 200},
+            {"name": "k500", "k": 500},
+            {"name": "k1000", "k": 1000},
+            {"name": "k1500", "k": 1500},
+            {"name": "k2000", "k": 2000},
+            {"name": "k10000", "k": 10000},
+        ],
     },
-
     # Experiment 2b: Treemix Parameters - Migration Edges
     "exp_2b": {
-        "plink_test": "test_1", #Use the baseline PLINK file
+        "plink_test": "test_1",  # Use the baseline PLINK file
         "plink_output": "baseline/plink_results/baseline_treemix.gz",
-        "variants":[
-            {"name":f"m{m}","m":m}
-            for m in [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
-        ]
+        "variants": [
+            {"name": f"m{m}", "m": m}
+            for m in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+        ],
     },
-
     # Experiment 3a: PLINK Parameters - Genotype missigness
     "exp_3a": {
-        "plink_test":"test_3a",
-        "variants":[
-            {"name":"geno_missing_000","geno":"0.00"},
-            {"name":"geno_missing_001","geno":"0.01"},
-            {"name":"geno_missing_005","geno":"0.05"}
-        ]
+        "plink_test": "test_3a",
+        "variants": [
+            {"name": "geno_missing_000", "geno": "0.00"},
+            {"name": "geno_missing_001", "geno": "0.01"},
+            {"name": "geno_missing_005", "geno": "0.05"},
+        ],
     },
-
     # Experiment 3b: PLINK Parameters - Minor Allele Frequency
     "exp_3b": {
-        "plink_test":"test_3b",
-        "variants": [
-            {"name":"minor_allele_freq_005","maf":"0.05"}
-        ]
+        "plink_test": "test_3b",
+        "variants": [{"name": "minor_allele_freq_005", "maf": "0.05"}],
     },
-
     # Experiment 4: Addtion of Archaic Homonin Genomes
-    "exp_4" : {
-        "plink_test":"test_4",
-        "variants":[
-            {"name":"added_Deni"},
-            {"name":"added_Vindija"},
-            {"name":"added_Both"}
-        ]
+    "exp_4": {
+        "plink_test": "test_4",
+        "variants": [
+            {"name": "added_Deni"},
+            {"name": "added_Vindija"},
+            {"name": "added_Both"},
+        ],
     },
-
     # Experiment 5a: Uneven Sampling
     "exp_5a": {
-        "plink_test":"test_5a",
-        "variants": [ 
-            {"name":"filtered_3_uneven_ind","size":3},
-            {"name":"filtered_5_uneven_ind","size":5}
-        ]
+        "plink_test": "test_5a",
+        "variants": [
+            {"name": "filtered_3_uneven_ind", "size": 3},
+            {"name": "filtered_5_uneven_ind", "size": 5},
+        ],
     },
-
-        # Experiment 5b: Even sampling
+    # Experiment 5b: Even sampling
     "exp_5b": {
         "plink_test": "test_5b",
         "variants": [
             {"name": "filtered_3_even_ind", "size": 3},
-            {"name": "filtered_5_even_ind", "size": 5}
-        ]
+            {"name": "filtered_5_even_ind", "size": 5},
+        ],
     },
-    
     # Experiment 6a: Drop populations
     "exp_6a": {
         "plink_test": "test_6a",
         "variants": [
             {"name": "drop_pops_14", "num": 14},
-            {"name": "drop_pops_20", "num": 20}
-        ]
+            {"name": "drop_pops_20", "num": 20},
+        ],
     },
-    
     # Experiment 6b: Remove continents
     "exp_6b": {
         "plink_test": "test_6b",
         "variants": [
-            {"name": f"dataset_no_{continent.replace(' ', '_')}"} 
-            for continent in ["Europe","North_Africa", "Middle_East", "East_Asia", "Central_South_Asia", "Native_America", "Oceania"]
-        ]
+            {"name": f"dataset_no_{continent.replace(' ', '_')}"}
+            for continent in [
+                "Europe",
+                "North_Africa",
+                "Middle_East",
+                "East_Asia",
+                "Central_South_Asia",
+                "Native_America",
+                "Oceania",
+            ]
+        ],
     },
-    
     # Experiment 7a: Remove admixed populations
-    "exp_7a": {
-        "plink_test": "test_7a",
-        "variants": [{"name": "drop_admixed_pops"}]
-    },
-    
+    "exp_7a": {"plink_test": "test_7a", "variants": [{"name": "drop_admixed_pops"}]},
     # Experiment 7ba: Artificial 2-way hybrids
     "exp_7ba": {
         "plink_test": "test_7ba",
-        "variants": [{"name": "artificial_2_merged_all"}]
+        "variants": [{"name": "artificial_2_merged_all"}],
     },
-    
     # Experiment 7bb: Artificial 5-way hybrids
     "exp_7bb": {
         "plink_test": "test_7bb",
-        "variants": [{"name": "artificial_5_merged_all"}]
-    }
+        "variants": [{"name": "artificial_5_merged_all"}],
+    },
 }
 
 
@@ -138,27 +129,29 @@ def get_all_plink_outputs():
             write_out = f"{EXPERIMENTS_DIR}/{exp_config['plink_output']}"
             outputs.append(write_out)
         else:
-            variant_id = [var_name['name'] for var_name in exp_config['variants']]
+            variant_id = [var_name["name"] for var_name in exp_config["variants"]]
             for id in variant_id:
                 write_out = f"{EXPERIMENTS_DIR}/experiment_{exp_name.split("_")[-1]}/plink_results/{exp_name.split("_")[-1]}_{id}_treemix.gz"
                 outputs.append(write_out)
     return outputs
+
 
 def get_outputs_for_test(exp_name):
     # Get all the ouput for a particular experiment
     outputs = []
     output = EXPERIMENTS[exp_name]
     for key, value in output.items():
-        if key == 'plink_output':
+        if key == "plink_output":
             write_out = f"{EXPERIMENTS_DIR}/{output['plink_output']}"
             outputs.append(write_out)
             break
-        elif key == 'variants':
-            variant_id = [i['name'] for i in output[key]]
+        elif key == "variants":
+            variant_id = [i["name"] for i in output[key]]
             for id in variant_id:
                 write_out = f"{EXPERIMENTS_DIR}/experiment_{exp_name.split("_")[-1]}/plink_results/{exp_name.split("_")[-1]}_{id}_treemix.gz"
                 outputs.append(write_out)
-    return outputs       
+    return outputs
+
 
 def get_all_treemix_outputs():
     outputs = []
@@ -170,12 +163,14 @@ def get_all_treemix_outputs():
                     outputs.append(
                         f"{EXPERIMENTS_DIR}/baseline/treemix_results/baseline_{mode}.{ext}"
                     )
-        elif exp_name in ["exp_2a","exp_2b"]:
+        elif exp_name in ["exp_2a", "exp_2b"]:
             continue
         else:
             exp_dir = f"experiment_{exp_name.split('_')[-1]}"
-            exp_number = exp_name.split('_')[-1]
-            variant_names = [f"{exp_number}_{v['name']}" for v in exp_config["variants"]]
+            exp_number = exp_name.split("_")[-1]
+            variant_names = [
+                f"{exp_number}_{v['name']}" for v in exp_config["variants"]
+            ]
 
             for variant in variant_names:
                 for mode in ["split", "migration"]:
@@ -190,44 +185,60 @@ def get_outputs_for_comparison():
     # Get all the outputs for the experiment
     outputs = []
     for exp_name, exp_config in EXPERIMENTS.items():
-        if exp_name not in ['baseline','exp_2a','exp_2b']: # We do not want these experiments as a part of our comparison results.
+        if exp_name not in [
+            "baseline",
+            "exp_2a",
+            "exp_2b",
+        ]:  # We do not want these experiments as a part of our comparison results.
             exp_dir = f"experiment_{exp_name.split('_')[-1]}"
-            exp_number = exp_name.split('_')[-1]
-            variant_names = [f"{exp_number}_{v['name']}" for v in exp_config['variants']]
+            exp_number = exp_name.split("_")[-1]
+            variant_names = [
+                f"{exp_number}_{v['name']}" for v in exp_config["variants"]
+            ]
 
             for variant in variant_names:
-                for mode in ["split","migration"]:
-                    outputs.append(f"{EXPERIMENTS_DIR}/{exp_dir}/comparison_results/{variant}_{mode}_differences.txt")
-                    outputs.append(f"{EXPERIMENTS_DIR}/{exp_dir}/comparison_results/{variant}_{mode}_tree_comparison_results.json")
-    
+                for mode in ["split", "migration"]:
+                    outputs.append(
+                        f"{EXPERIMENTS_DIR}/{exp_dir}/comparison_results/{variant}_{mode}_differences.txt"
+                    )
+                    outputs.append(
+                        f"{EXPERIMENTS_DIR}/{exp_dir}/comparison_results/{variant}_{mode}_tree_comparison_results.json"
+                    )
+
     return outputs
+
 
 def get_all_plots():
     outputs = []
 
     # Add baseline plots
-    for mode in ["split","migration"]:
-        for ext in ["pdf","png"]:
-            outputs.append(
-                f"{EXPERIMENTS_DIR}/baseline/plots/baseline_{mode}.{ext}"
-            )
-
+    for mode in ["split", "migration"]:
+        for ext in ["pdf", "png"]:
+            outputs.append(f"{EXPERIMENTS_DIR}/baseline/plots/baseline_{mode}.{ext}")
 
     for exp_name, exp_config in EXPERIMENTS.items():
-        if exp_name not in ['baseline','exp_2a','exp_2b']: # We do not want these experiments as a part of our comparison results.
+        if exp_name not in [
+            "baseline",
+            "exp_2a",
+            "exp_2b",
+        ]:  # We do not want these experiments as a part of our comparison results.
             exp_dir = f"experiment_{exp_name.split("_")[-1]}"
             exp_number = exp_name.split("_")[-1]
-            variant_names = [f"{exp_number}_{v['name']}" for v in exp_config['variants']]
+            variant_names = [
+                f"{exp_number}_{v['name']}" for v in exp_config["variants"]
+            ]
 
             for variant in variant_names:
-                for mode in ["split","migration"]:
-                    for ext in ["pdf","png"]:
+                for mode in ["split", "migration"]:
+                    for ext in ["pdf", "png"]:
                         outputs.append(
                             f"{EXPERIMENTS_DIR}/{exp_dir}/plots/{variant}_{mode}_plot.{ext}"
                         )
     return outputs
 
+
 # ============ Rules ==================
+
 
 # Rule all: Define the output files I need
 rule all:
@@ -245,24 +256,20 @@ rule all:
         get_outputs_for_test("exp_7a"),
         get_outputs_for_test("exp_7ba"),
         get_outputs_for_test("exp_7bb"),
-
-        # What I need are the treemix outputs
+        # Treemix outputs
         get_all_treemix_outputs(),
-
-        # What I want are the comparsion files
+        # Comparsion file outputs
         get_outputs_for_comparison(),
+        # PDF and PNG plots
+        get_all_plots(),
 
-        # What I want are the plots
-        get_all_plots()
 
-# Step 1: Run the PLINK SCRIPT for each experiment 
+# Step 1: Run the PLINK SCRIPT for each experiment
 rule run_plink_test_1:
     input:
-        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+        plink_script=f"{ROOT_DIR}/src/plink_script.sh",
     output:
-        get_outputs_for_test("baseline")
-    #params:
-    #    plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+        get_outputs_for_test("baseline"),
     threads: 1
     shell:
         """
@@ -270,13 +277,12 @@ rule run_plink_test_1:
         bash {input.plink_script} test_1
         """
 
+
 rule run_plink_test_3a:
     input:
-        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+        plink_script=f"{ROOT_DIR}/src/plink_script.sh",
     output:
-        get_outputs_for_test("exp_3a")
-    #params:
-    #    plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+        get_outputs_for_test("exp_3a"),
     threads: 2
     shell:
         """
@@ -284,13 +290,12 @@ rule run_plink_test_3a:
         bash {input.plink_script} test_3a
         """
 
+
 rule run_plink_test_3b:
     input:
-        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+        plink_script=f"{ROOT_DIR}/src/plink_script.sh",
     output:
-        get_outputs_for_test("exp_3b")
-    #params:
-    #    plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+        get_outputs_for_test("exp_3b"),
     threads: 1
     shell:
         """
@@ -298,13 +303,12 @@ rule run_plink_test_3b:
         bash {input.plink_script} test_3b
         """
 
+
 rule run_plink_test_4:
     input:
-        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+        plink_script=f"{ROOT_DIR}/src/plink_script.sh",
     output:
-        get_outputs_for_test("exp_4")
-    #params:
-    #    plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+        get_outputs_for_test("exp_4"),
     threads: 2
     shell:
         """
@@ -312,13 +316,12 @@ rule run_plink_test_4:
         bash {input.plink_script} test_4
         """
 
+
 rule run_plink_test_5a:
     input:
-        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+        plink_script=f"{ROOT_DIR}/src/plink_script.sh",
     output:
-        get_outputs_for_test("exp_5a")
-    #params:
-    #    plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+        get_outputs_for_test("exp_5a"),
     threads: 3
     shell:
         """
@@ -326,26 +329,25 @@ rule run_plink_test_5a:
         bash {input.plink_script} test_5a
         """
 
+
 rule run_plink_test_5b:
     input:
-        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+        plink_script=f"{ROOT_DIR}/src/plink_script.sh",
     output:
-        get_outputs_for_test("exp_5b")
-    #params:
-    #    plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+        get_outputs_for_test("exp_5b"),
     threads: 3
     shell:
         """
         export SNAKEMAKE_CORES={threads}
         bash {input.plink_script} test_5b
         """
+
+
 rule run_plink_test_6a:
     input:
-        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+        plink_script=f"{ROOT_DIR}/src/plink_script.sh",
     output:
-        get_outputs_for_test("exp_6a")
-    #params:
-    #    plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+        get_outputs_for_test("exp_6a"),
     threads: 2
     shell:
         """
@@ -353,13 +355,12 @@ rule run_plink_test_6a:
         bash {input.plink_script} test_6a
         """
 
+
 rule run_plink_test_6b:
     input:
-        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+        plink_script=f"{ROOT_DIR}/src/plink_script.sh",
     output:
-        get_outputs_for_test("exp_6b")
-    #params:
-    #    plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+        get_outputs_for_test("exp_6b"),
     threads: 4
     shell:
         """
@@ -367,24 +368,25 @@ rule run_plink_test_6b:
         bash {input.plink_script} test_6b
         """
 
+
 rule run_plink_test_7a:
     input:
-        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+        plink_script=f"{ROOT_DIR}/src/plink_script.sh",
     output:
-        get_outputs_for_test("exp_7a")
-    #params:
-    #    plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+        get_outputs_for_test("exp_7a"),
     threads: 3
     shell:
         """
         export SNAKEMAKE_CORES={threads}
         bash {input.plink_script} test_7a
         """
+
+
 rule run_plink_test_7ba:
     input:
-        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+        plink_script=f"{ROOT_DIR}/src/plink_script.sh",
     output:
-        get_outputs_for_test("exp_7ba")
+        get_outputs_for_test("exp_7ba"),
     threads: 3
     shell:
         """
@@ -392,11 +394,12 @@ rule run_plink_test_7ba:
         bash {input.plink_script} test_7ba
         """
 
+
 rule run_plink_test_7bb:
     input:
-        plink_script = f"{ROOT_DIR}/src/plink_script.sh"
+        plink_script=f"{ROOT_DIR}/src/plink_script.sh",
     output:
-        get_outputs_for_test("exp_7bb")
+        get_outputs_for_test("exp_7bb"),
     threads: 3
     shell:
         """
@@ -405,30 +408,24 @@ rule run_plink_test_7bb:
         """
 
 
-
-
 # Step 2: Run treemix - Split into separate rules for baseline and experiments
 # Special rule for baseline (no exp_prefix/filename pattern)
 rule run_treemix_baseline:
     input:
-        treemix_file=f"{EXPERIMENTS_DIR}/baseline/plink_results/baseline_treemix.gz"
-    
+        treemix_file=f"{EXPERIMENTS_DIR}/baseline/plink_results/baseline_treemix.gz",
     output:
         treeout=f"{EXPERIMENTS_DIR}/baseline/treemix_results/baseline_{{mode}}.treeout.gz",
         vertices=f"{EXPERIMENTS_DIR}/baseline/treemix_results/baseline_{{mode}}.vertices.gz",
         edges=f"{EXPERIMENTS_DIR}/baseline/treemix_results/baseline_{{mode}}.edges.gz",
-        log=f"{EXPERIMENTS_DIR}/baseline/treemix_results/baseline_{{mode}}.log"
-    
+        log=f"{EXPERIMENTS_DIR}/baseline/treemix_results/baseline_{{mode}}.log",
     threads: 1
-       
     params:
-        m = lambda w: 0 if w.mode == 'split' else 10,
-        k = SNP_SIZE,
-        seed = SEED,
-        root = ROOT,
-        output_stem = lambda w: f"{EXPERIMENTS_DIR}/baseline/treemix_results/baseline_{w.mode}",
-        results_dir = f"{EXPERIMENTS_DIR}/baseline/treemix_results"
-    
+        m=lambda w: 0 if w.mode == "split" else 10,
+        k=SNP_SIZE,
+        seed=SEED,
+        root=ROOT,
+        output_stem=lambda w: f"{EXPERIMENTS_DIR}/baseline/treemix_results/baseline_{w.mode}",
+        results_dir=f"{EXPERIMENTS_DIR}/baseline/treemix_results",
     shell:
         """
         # Create the results directory
@@ -443,32 +440,29 @@ rule run_treemix_baseline:
                     -o {params.output_stem} > {output.log} 2>&1
         """
 
+
 # Regular rule for experiments (with exp_prefix/filename pattern)
 rule run_treemix_experiments:
     input:
-        treemix_file=f"{EXPERIMENTS_DIR}/{{exp}}/plink_results/{{exp_prefix}}_{{filename}}_treemix.gz"
-    
+        treemix_file=f"{EXPERIMENTS_DIR}/{{exp}}/plink_results/{{exp_prefix}}_{{filename}}_treemix.gz",
     output:
         treeout=f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/{{exp_prefix}}_{{filename}}_{{mode}}.treeout.gz",
         vertices=f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/{{exp_prefix}}_{{filename}}_{{mode}}.vertices.gz",
         edges=f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/{{exp_prefix}}_{{filename}}_{{mode}}.edges.gz",
-        log=f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/{{exp_prefix}}_{{filename}}_{{mode}}.log"
-    
+        log=f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/{{exp_prefix}}_{{filename}}_{{mode}}.log",
     threads: 1
     wildcard_constraints:
         exp="experiment_.*",  # Only match experiment directories, not baseline
         exp_prefix=r"[0-9a-zA-Z]+",  # Allow alphanumeric characters
         filename=r"[0-9a-zA-Z_\-]+",  # Allow alphanumeric, underscore, and hyphen
-        mode="(split|migration)"  # Only allow split or migration modes
-       
+        mode="(split|migration)",  # Only allow split or migration modes
     params:
-        m = lambda w: 0 if w.mode == 'split' else 10,
-        k = SNP_SIZE,
-        seed = SEED,
-        root = ROOT,
-        output_stem = lambda w: f"{EXPERIMENTS_DIR}/{w.exp}/treemix_results/{w.exp_prefix}_{w.filename}_{w.mode}",
-        results_dir = lambda w: f"{EXPERIMENTS_DIR}/{w.exp}/treemix_results"
-    
+        m=lambda w: 0 if w.mode == "split" else 10,
+        k=SNP_SIZE,
+        seed=SEED,
+        root=ROOT,
+        output_stem=lambda w: f"{EXPERIMENTS_DIR}/{w.exp}/treemix_results/{w.exp_prefix}_{w.filename}_{w.mode}",
+        results_dir=lambda w: f"{EXPERIMENTS_DIR}/{w.exp}/treemix_results",
     shell:
         """
         # Create the results directory
@@ -483,31 +477,27 @@ rule run_treemix_experiments:
                     -o {params.output_stem} > {output.log} 2>&1
         """
 
-# Remove the old run_treemix rule and replace with the above two rules
 
 # Step 3: Find Differences
 rule compare_trees:
     input:
         # Input files will be the baseline tree (split and migration) and compare those to the respective split and migration trees of the experiments
-        baseline_tree = f"{EXPERIMENTS_DIR}/baseline/treemix_results/baseline_{{mode}}.treeout.gz",
-        test_tree = f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/{{exp_prefix}}_{{filename}}_{{mode}}.treeout.gz"
-
+        baseline_tree=f"{EXPERIMENTS_DIR}/baseline/treemix_results/baseline_{{mode}}.treeout.gz",
+        test_tree=f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/{{exp_prefix}}_{{filename}}_{{mode}}.treeout.gz",
     output:
         # Will be experiment name followed by either differences.txt or tree_comparison_results.json
-        txt_file = f"{EXPERIMENTS_DIR}/{{exp}}/comparison_results/{{exp_prefix}}_{{filename}}_{{mode}}_differences.txt",
-        json_file = f"{EXPERIMENTS_DIR}/{{exp}}/comparison_results/{{exp_prefix}}_{{filename}}_{{mode}}_tree_comparison_results.json"
-    
+        txt_file=f"{EXPERIMENTS_DIR}/{{exp}}/comparison_results/{{exp_prefix}}_{{filename}}_{{mode}}_differences.txt",
+        json_file=f"{EXPERIMENTS_DIR}/{{exp}}/comparison_results/{{exp_prefix}}_{{filename}}_{{mode}}_tree_comparison_results.json",
     wildcard_constraints:
         exp="experiment_.*",
         exp_prefix=r"[0-9a-zA-Z]+",
         filename=r"[0-9a-zA-Z_\-]+",
-        mode="(split|migration)"
+        mode="(split|migration)",
     params:
-        script = f"{ROOT_DIR}/src/treemix_tests/analysis/find_differences.py",
-        output_dir = lambda w: f"{EXPERIMENTS_DIR}/{w.exp}/comparison_results",
-        basename = lambda w: f"{w.exp_prefix}_{w.filename}_{w.mode}",
-        python = f"{ROOT_DIR}/.venv/bin/python"
-    
+        script=f"{ROOT_DIR}/src/treemix_tests/analysis/find_differences.py",
+        output_dir=lambda w: f"{EXPERIMENTS_DIR}/{w.exp}/comparison_results",
+        basename=lambda w: f"{w.exp_prefix}_{w.filename}_{w.mode}",
+        python=f"{ROOT_DIR}/.venv/bin/python",
     shell:
         """
         mkdir -p {params.output_dir}
@@ -519,18 +509,19 @@ rule compare_trees:
             -b {params.basename}
         """
 
+
 # Step 4: Plot baseline tree
 rule plot_baseline_tree:
     input:
-        baseline_tree = f"{EXPERIMENTS_DIR}/baseline/treemix_results/baseline_{{mode}}.treeout.gz"
+        baseline_tree=f"{EXPERIMENTS_DIR}/baseline/treemix_results/baseline_{{mode}}.treeout.gz",
     output:
-        pdf_file = f"{EXPERIMENTS_DIR}/baseline/plots/baseline_{{mode}}.pdf",
-        png_file = f"{EXPERIMENTS_DIR}/baseline/plots/baseline_{{mode}}.png"
+        pdf_file=f"{EXPERIMENTS_DIR}/baseline/plots/baseline_{{mode}}.pdf",
+        png_file=f"{EXPERIMENTS_DIR}/baseline/plots/baseline_{{mode}}.png",
     params:
-        plot_script = f"{ROOT_DIR}/src/treemix_tests/plot_scripts/plot_with_legend.R",
-        baseline_tree = lambda w: f"{EXPERIMENTS_DIR}/baseline/treemix_results/baseline_{w.mode}",
-        output_dir = f"{EXPERIMENTS_DIR}/baseline/plots",
-        output_base = lambda w: f"baseline_{w.mode}"
+        plot_script=f"{ROOT_DIR}/src/treemix_tests/plot_scripts/plot_with_legend.R",
+        baseline_tree=lambda w: f"{EXPERIMENTS_DIR}/baseline/treemix_results/baseline_{w.mode}",
+        output_dir=f"{EXPERIMENTS_DIR}/baseline/plots",
+        output_base=lambda w: f"baseline_{w.mode}",
     shell:
         """
         mkdir -p {params.output_dir}
@@ -543,25 +534,23 @@ rule plot_baseline_tree:
                 --output_dir {params.output_dir}
         """
 
+
 rule plot_tree:
     input:
         # Input of the trees and the comparison text file
-        test_tree_treeout = f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/{{filename}}_{{mode}}.treeout.gz",
-        comparison_file = f"{EXPERIMENTS_DIR}/{{exp}}/comparison_results/{{filename}}_{{mode}}_differences.txt"
+        test_tree_treeout=f"{EXPERIMENTS_DIR}/{{exp}}/treemix_results/{{filename}}_{{mode}}.treeout.gz",
+        comparison_file=f"{EXPERIMENTS_DIR}/{{exp}}/comparison_results/{{filename}}_{{mode}}_differences.txt",
     output:
-        pdf_file = f"{EXPERIMENTS_DIR}/{{exp}}/plots/{{filename}}_{{mode}}_plot.pdf",
-        png_file = f"{EXPERIMENTS_DIR}/{{exp}}/plots/{{filename}}_{{mode}}_plot.png"
-
+        pdf_file=f"{EXPERIMENTS_DIR}/{{exp}}/plots/{{filename}}_{{mode}}_plot.pdf",
+        png_file=f"{EXPERIMENTS_DIR}/{{exp}}/plots/{{filename}}_{{mode}}_plot.png",
     wildcard_constraints:
         exp="experiment_.*",
         filename=r"[0-9a-zA-Z_\-]+",
-        mode="(split|migration)"
-
+        mode="(split|migration)",
     params:
-        plot_script = f"{ROOT_DIR}/src/treemix_tests/plot_scripts/plot_with_legend.R",
-        test_tree_stem = lambda w: f"{EXPERIMENTS_DIR}/{w.exp}/treemix_results/{w.filename}_{w.mode}",
-        output_dir = lambda w: f"{EXPERIMENTS_DIR}/{w.exp}/plots"
-    
+        plot_script=f"{ROOT_DIR}/src/treemix_tests/plot_scripts/plot_with_legend.R",
+        test_tree_stem=lambda w: f"{EXPERIMENTS_DIR}/{w.exp}/treemix_results/{w.filename}_{w.mode}",
+        output_dir=lambda w: f"{EXPERIMENTS_DIR}/{w.exp}/plots",
     shell:
         """
         mkdir -p {params.output_dir}
