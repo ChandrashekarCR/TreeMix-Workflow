@@ -1,6 +1,9 @@
 # Data files
 raw_data/
 
+# Ignore the archive files - these files do not have a direct use in the workflow, but maybe they might have some information
+archive/
+
 # Ignore bin files
 bin/
 
