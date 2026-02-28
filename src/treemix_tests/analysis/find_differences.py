@@ -392,9 +392,9 @@ if __name__ == '__main__':
 
 
     main(
-        baseline_path= args.input_file,                 #"/home/inf-21-2024/projects/treemix_project/plots/appendix/m_test/baseline_m_1_output.treeout.gz",
-        tree_path= args.comparison_tree,                #"/home/inf-21-2024/projects/treemix_project/plots/appendix/m_test/baseline_m_6_output.treeout.gz",
-        output_dir= args.output_dir,                    #"comparision_results",
-        basename=args.basename,                         #"test_comparison",
+        baseline_path= args.input_file,                 #baseline_m_1_output.treeout.gz,
+        tree_path= args.comparison_tree,                #baseline_m_6_output.treeout.gz,
+        output_dir= args.output_dir,                    #comparision_results,
+        basename=args.basename,                         #test_comparison,
         pruned=True
     )

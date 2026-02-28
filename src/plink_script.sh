@@ -728,7 +728,7 @@ test_7bb() {
 }
 
 
-# Experiment 12: Artificial hybrid populations with fifty-mixtures-shuffled:
+# Experiment 12: Artificial hybrid populations with five-mixtures-shuffled:
 # ---------------------------------------------------
 # This script creates artificial hybrid populations by combining five populations the same population but shuffled.
 # Example:
