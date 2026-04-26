@@ -49,12 +49,17 @@ EXPERIMENTS = {
             {"name": "geno_missing_000", "geno": "0.00"},
             {"name": "geno_missing_001", "geno": "0.01"},
             {"name": "geno_missing_005", "geno": "0.05"},
+            {"name": "geno_missing_01", "geno" : "0.1"},
+            {"name": "geno_missing_02", "geno": "0.2"},
+            {"name": "geno_missing_03", "geno": "0.3"}
         ],
     },
     # Experiment 3b: PLINK Parameters - Minor Allele Frequency
     "exp_3b": {
         "plink_test": "test_3b",
-        "variants": [{"name": "minor_allele_freq_005", "maf": "0.05"}],
+        "variants": [{"name": "minor_allele_freq_005", "maf": "0.05"},
+                     {"name": "minor_allele_freq_002", "maf": "0.02"},
+                     {"name": "minor_allele_freq_003", "maf": "0.01"}],
     },
     # Experiment 4: Addtion of Archaic Homonin Genomes
     "exp_4": {
@@ -106,7 +111,9 @@ EXPERIMENTS = {
         ],
     },
     # Experiment 7a: Remove admixed populations
-    "exp_7a": {"plink_test": "test_7a", "variants": [{"name": "drop_admixed_pops"}]},
+    "exp_7a": {
+        "plink_test": "test_7a", "variants": [{"name": "drop_admixed_pops"}]
+        },
     # Experiment 7ba: Artificial 2-way hybrids
     "exp_7ba": {
         "plink_test": "test_7ba",

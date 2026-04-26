@@ -23,11 +23,16 @@ experiments/
 .vscode
 .DS_Store
 .snakemake
+__pycache__
 
 # Ignore these miscellaneous files
 create_baseline_plots.sh
 *.log
 .github_password
+.coverage
+.flake8
+pytest.ini
+.github
 
 # Ignore plot files
 /plots

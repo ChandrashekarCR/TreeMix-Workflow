@@ -118,7 +118,7 @@ test_3a() {
     mkdir -p "$OUT_DIR"
 
     # Define missingness thresholds to test
-    GENO_THRESHOLDS=("0.05" "0.01" "0.00")
+    GENO_THRESHOLDS=("0.05" "0.01" "0.00", "0.1" "0.2" "0.3" )
     PARALLEL_JOBS=$(get_parallel_jobs)
 
     echo "Running with up to $PARALLEL_JOBS parallel jobs."
@@ -158,13 +158,31 @@ test_3b() {
     echo "===== Running Experiment 3b: Minor Allele Frequency ===== "
     OUT_DIR="$RESULTS_DIR/experiment_3b/plink_results"
     mkdir -p "$OUT_DIR"
-    PREFIX="$OUT_DIR/3b_minor_allele_freq_005"
 
-    $PLINK --bfile "$RAW_DATA" --geno --maf 0.05 --make-bed --out "$PREFIX"
+    # Define minor allele frequency thresholds
+    MAF_THRESHOLDS=("0.05" "0.02" "0.01")
+    PARALLEL_JOBS=$(get_parallel_jobs)
 
-    convert_plink_to_treemix "$PREFIX" "$OUT_DIR" "$POP_LIST"
+    echo "Running with up to $PARALLEL_JOBS parallel jobs."
 
+    for MAF in "${MAF_THRESHOLDS[@]}"; do
+        {
+            PREFIX="$OUT_DIR/3b_minor_allele_freq_${MAF//./}"
+
+            echo "Running PLINK filtering with MAF threshold: $MAF"
+            "$PLINK" --bfile "$RAW_DATA" --geno --maf "$MAF" --make-bed --out "$PREFIX"
+
+            convert_plink_to_treemix "$PLINK" "$OUT_DIR" "$POP_LIST"
+
+        }&
+
+        # Limit the number of jobs
+        (($(jobs -r | wc -l) >= PARALLEL_JOBS)) && wait
+    done
+
+    wait
     echo "Experiment 3b completed. Results in: $OUT_DIR"
+
 }
 
 
